@@ -1,0 +1,11 @@
+# Tarsnap cache directory
+cachedir /Users/isaacs/.tarsnap/tarsnap-cache
+
+# Tarsnap key file
+keyfile /Users/isaacs/.tarsnap/tarsnap.key
+
+# Don't archive files which have the nodump flag set
+nodump
+
+# Print statistics when creating or deleting archives
+print-stats

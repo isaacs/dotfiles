@@ -1,0 +1,111 @@
+# commands that only get loaded on the Darwin platform.
+# Mostly, these commands interact with specific Mac programs.
+
+alias compressmail='sqlite3 ~/Library/Mail/Envelope\ Index vacuum index'
+
+viewcvs () {
+	wd=`pwd`
+	for x in $@; do
+		x="$wd/$x"
+		# argument should be a file or folder.
+		if [ -f "$x" ]; then
+			folder=`dirname "$x"`
+			thefile=`basename "$x"`
+		elif [ -d "$x" ]; then
+			folder="$x"
+			thefile=""
+		else
+			#echo "invalid argument : $x"
+			return
+		fi
+	
+		cvsfolder="$folder/CVS"
+		#echo "cvsfolder = $cvsfolder"
+		if ! [ -d "$cvsfolder" ]; then
+			#echo "not in a cvs folder"
+			return
+		fi
+		repo=`cat "$folder/CVS/Repository"`
+	
+		open http://vault.yahoo.com/viewcvs/$repo/$thefile
+	done
+}
+
+cvsdiff () {
+	SCRIPTNAME="${0##*/}"
+	OLDFILE=/tmp/"${1##*/}"
+	NEWFILE="$1"
+
+	if [ $# -eq 1 ]
+	then
+	   cvs update -p "$NEWFILE" > "$OLDFILE"
+	elif [ $# -eq 2 ]
+	then
+	   cvs update -p -r "$2" "$NEWFILE"  > "$OLDFILE"
+	else
+	   echo "usage: $SCRIPTNAME <file> [rev]"
+	   return 1
+	fi
+
+	#echo "newfile $NEWFILE"
+	#echo "oldfile $OLDFILE"
+	#echo "pwd `pwd`"
+
+	opendiff "$OLDFILE" "$NEWFILE" -merge "`pwd`/$NEWFILE"
+}
+
+
+unison_bin="`which unison`"
+unison_prof="yap"
+unison () {
+	$unison_bin -logfile /dev/null -ui text -times -ignore 'Regex .*docs/2008[0-9]{4}/.*' -ignore 'Regex .*/\.svn/.*' -ignore 'Regex .*/(FreeBSD|rhel)\.[0-9]+\.[0-9]+\.package.*' -ignore 'Regex .*/\.DS_Store' $@ $unison_prof
+}
+# unison () {
+# 	$unison_bin -ui text -logfile /dev/stdout -ignore 'Regex .*docs/2008[0-9]{4}/.*' -ignore 'Regex .*/(FreeBSD|rhel)\.[0-9]+\.[0-9]+\.package.*' -ignore 'Regex .*/\.DS_Store' -times $@ $unison_prof
+# }
+unisondev () {
+	unison -terse -repeat 1 -batch
+}
+unisonpush () {
+	unison -force /Users/isaacs/dev/yap/ -batch -terse
+}
+unisonstart () {
+	echo "pushing..."
+	growlnotify -a Unison -t Unison -m pushing...
+	unisonpush
+	echo "starting..."
+	growlnotify -a Unison -t Unison -m starting...
+	unisondev
+	echo "stopped."
+	growlnotify -a Unison -t Unison -m stopped.
+}
+unisonquiet () {
+	echo "" > ~/unisonlog.txt
+	headless '( unisonstart &>~/unisonlog.txt ) &'
+}
+unisonlisten () {
+	title unison
+	pid=`pid unison`
+	if [ "$pid" == "" ]; then
+		unisonquiet
+	else
+		echo "[$pid] (already running)"
+	fi
+	tail -f ~/unisonlog.txt
+}
+unisonkill () {
+	killall unison
+	for id in `pid unison`; do
+		kill $1 $id
+	done
+}
+
+[ `basename "$EDITOR"` == "mate_wait" ] && export LESSEDIT='mate_wait -l %lm %f'
+
+export UNISONLOCALHOSTNAME=sistertrain-lm.corp.yahoo.com
+
+alias sethost="sudo hostname sistertrain-lm; sudo scutil --set LocalHostName sistertrain-lm; sudo scutil --set HostName sistertrain-lm"
+
+ahyaneupdate () {
+	fh '. ~/.extra.bashrc; cd dev/ahyane; agent; git fetch; git rebase origin/master; bin/build.php'
+}
