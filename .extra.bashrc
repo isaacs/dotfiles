@@ -930,6 +930,9 @@ tsabort () {
 tslisten () {
 	tail -f ~/.tslog
 }
+tsl () {
+	tslisten
+}
 
 
 #load any per-platform .extra.bashrc files.
