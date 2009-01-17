@@ -9,3 +9,9 @@ nodump
 
 # Print statistics when creating or deleting archives
 print-stats
+
+# things that don't really need to be backed up, and are huge.
+exclude */TV\ Shows/*
+exclude */Movies/*
+exclude */Virtual\ Machines.localized/*
+exclude */Podcasts/*
