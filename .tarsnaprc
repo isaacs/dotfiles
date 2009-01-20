@@ -31,3 +31,4 @@ exclude */.viminfo
 exclude */.dotfile_backup*
 exclude */Caches/*
 exclude */adium/build*
+exclude */Dropbox/lomwc*
