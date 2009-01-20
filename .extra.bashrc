@@ -496,14 +496,16 @@ else
 	alias yapl="$yapl"
 fi
 
-alias prof=". ~/.extra.bashrc"
+prof () {
+	. ~/.extra.bashrc
+}
 editprof () {
 	s=""
 	if [ "$1" != "" ]; then
 		s="_$1"
 	fi
 	$EDITOR ~/.extra$s.bashrc
-	. ~/.extra.bashrc
+	prof
 }
 pushprof () {
 	[ "$1" == "" ] && echo "no hostname provided" && return 1
