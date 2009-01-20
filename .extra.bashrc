@@ -868,13 +868,19 @@ fetch_to () {
 alias pie="perl -p -i -e "
 
 # c++ compile
-cm () {
+stripc () {
 	f="$1"
 	o="$f"
 	o=${o%.c}
 	o=${o%.cpp}
 	o=${o%.cc}
-	g++ -o $o $f
+	echo $o
+}
+cm () {
+	g++ -o `stripc "$1"` "$1"
+}
+cr () {
+	cm "$1" && ./`stripc "$1"`
 }
 
 # weekly status texts for team updates.
