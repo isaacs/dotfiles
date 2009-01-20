@@ -861,7 +861,7 @@ fetch_to () {
 	[ $# -ne 2 ] && echo "usage: fetch_to <url> <filename>" && return 1
 	urltofetch=$1
 	fname="$2"
-	wget -O "$fname" $urltofetch
+	wget -U "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.0.5) Gecko/2008120121 Firefox/3.0.5" -O "$fname" $urltofetch
 }
 
 # command-line perl prog
