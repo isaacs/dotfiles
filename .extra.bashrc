@@ -508,10 +508,11 @@ editprof () {
 pushprof () {
 	[ "$1" == "" ] && echo "no hostname provided" && return 1
 	failures=0
+	rsync="rsync --copy-links -v -a -z"
 	for each in $@; do
 		if [ "$each" != "" ]; then
-			if rsync -v -a -z ~/.{profile,extra,cvsrc,git}* $each:~ && \
-					rsync -v -a -z ~/.ssh/*{.pub,authorized_keys,config} $each:~/.ssh/; then
+			if $rsync ~/.{profile,extra,cvsrc,git}* $each:~ && \
+					$rsync ~/.ssh/*{.pub,authorized_keys,config} $each:~/.ssh/; then
 				echo "Pushed bash extras and public keys to $each"
 			else
 				echo "Failed to push to $each"
@@ -690,7 +691,7 @@ getip () {
 
 ips () {
 	interface=""
-	for i in $( ifconfig | egrep -o '(^(vmnet|en)[0-9]:|inet ([0-9]+\.){3}[0-9]+)' | egrep -o '(^(vmnet|en)[0-9]:|([0-9]+\.){3}[0-9]+)' | grep -v 127.0.0.1 ); do
+	for i in $( ifconfig | egrep -o '(^(vmnet|en|eth)[0-9]:|inet ([0-9]+\.){3}[0-9]+)' | egrep -o '(^(vmnet|en)[0-9]:|([0-9]+\.){3}[0-9]+)' | grep -v 127.0.0.1 ); do
 		# echo "i=[$i]"
 		if [ ${i:(${#i}-1)} == ":" ]; then
 			interface=$i
