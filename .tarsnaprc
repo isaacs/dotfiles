@@ -15,3 +15,7 @@ exclude */TV\ Shows/*
 exclude */Movies/*
 exclude */Virtual\ Machines.localized/*
 exclude */Podcasts/*
+exclude */apache/logs/*
+exclude */apache/log/*
+exclude */wp-content/cache/*
+exclude */apache/foohack.com/picnic/*
