@@ -94,7 +94,7 @@ unisonlisten () {
 	tail -f ~/unisonlog.txt
 }
 unisonkill () {
-	killall unison
+	killall $1 unison
 	for id in `pid unison`; do
 		kill $1 $id
 	done
