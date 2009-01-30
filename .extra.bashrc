@@ -102,6 +102,13 @@ back () {
 quiet () {
 	( $@ ) >/dev/null 2>/dev/null
 }
+#do something to all the things on standard input.
+# echo 1 2 3 | foreach echo foo is like calling echo foo 1; echo foo 2; echo foo 3;
+foreach () {
+	for i in `cat /dev/stdin`; do
+		$@ $i;
+	done
+}
 
 if inpath yuicompressor; then
 	testjs () {
@@ -448,7 +455,7 @@ alias lsdevs="sudo lsof | $grep /dev"
 
 # domain sniffing
 w () {
-	whois $1 | egrep -i '(registrar:|no match|record expires on)'
+	whois $1 | egrep -i '(registrar:|no match|record expires on|holder:)'
 }
 
 
