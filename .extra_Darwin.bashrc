@@ -3,6 +3,33 @@
 
 alias compressmail='sqlite3 ~/Library/Mail/Envelope\ Index vacuum index'
 
+viewsvn () {
+	if [ $# -lt 1 ]; then
+		viewsvn .
+		return $?
+	elif [ $# -eq 1 ]; then
+		f="$1"
+		[ -d "$f" ] && [ -f "$f/.svn/entries" ] && f="$f/."
+		if ! [ -f "`dirname "$f"`/.svn/entries" ]; then
+			echo "$f - Not in an SVN repository." > /dev/stderr
+		else
+			open "$( \
+				grep svn+ssh `dirname $f`/.svn/entries \
+					| head -n1 \
+					| sed \
+						-e 's/svn\+ssh/http/g' \
+						-e 's/svn\.corp\.yahoo\.com\/yahoo/svn.corp.yahoo.com\/view\/yahoo/g' \
+			)/`basename $f`"
+		fi
+	else
+		RET=0
+		for i in $@; do
+			viewsvn $i || let 'RET += 1'
+		done
+		return $RET
+	fi
+}
+
 viewcvs () {
 	wd=`pwd`
 	for x in $@; do
