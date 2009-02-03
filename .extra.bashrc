@@ -857,9 +857,7 @@ watch () {
 # floating-point calculations
 calc () {
 	expression="$@"
-	if [ ${#expression} -lt 7 ] || [ "${expression:0:6}" != "scale=" ]; then
-		expression="scale=16;$expression"
-	fi
+	[ "${expression:0:6}" != "scale=" ] && expression="scale=16;$expression"
 	echo "$expression" | bc
 }
 
