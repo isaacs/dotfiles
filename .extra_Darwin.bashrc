@@ -107,8 +107,8 @@ unisonstart () {
 	growlnotify -a Unison -t Unison -m stopped.
 }
 unisonquiet () {
-	echo "" > ~/unisonlog.txt
-	headless '( unisonstart &>~/unisonlog.txt ) &'
+	echo "" > ~/.unisonlog
+	headless '( unisonstart &>~/.unisonlog ) &'
 }
 unisonlisten () {
 	title unison
@@ -118,7 +118,7 @@ unisonlisten () {
 	else
 		echo "[$pid] (already running)"
 	fi
-	tail -f ~/unisonlog.txt
+	tail -f ~/.unisonlog
 }
 unisonkill () {
 	killall $1 unison
