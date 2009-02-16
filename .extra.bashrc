@@ -194,7 +194,8 @@ shebang () {
 		newcontents=`cat <<ENDSHEBANG
 $prog
 $contents
-ENDSHEBANG`
+ENDSHEBANG
+`
 		echo -n "$newcontents" > $1
 	fi
 	return 0
@@ -227,7 +228,7 @@ pickrand () {
 		[ $tst "$i" ] && let 'cnt += 1' && [ $cnt -eq $p ] && echo "$i" && return
 	done
 }
-	
+
 
 # md5 from the command line
 # I like the BSD/Darwin "md5" util a bit better than md5sum flavor.
@@ -870,7 +871,7 @@ fetch_to () {
 }
 
 # command-line perl prog
-alias pie="perl -p -i -e "
+alias pie="perl -pi -e "
 
 # c++ compile
 stripc () {
