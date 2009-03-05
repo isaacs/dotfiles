@@ -143,6 +143,7 @@ substitute yscp scp
 
 export CVSROOT=vault.yahoo.com:/CVSROOT
 export CVS_RSH=`choose_first yssh ssh`
+export SVN_RSH=`choose_first yssh ssh`
 export RSYNC_RSH=`choose_first yssh ssh`
 
 [ -d ~/dev/main/yahoo ] && export SRCTOP=~/dev/main/yahoo 
@@ -615,7 +616,10 @@ alias svncleanup="sudo find . -name '.svn' -exec rm -rf {} \; ;"
 
 alias gci="git commit"
 alias gpu="git pull"
-alias gps="git push"
+alias gps="git push --all"
+gpm () {
+	git pull $1 master
+}
 
 addcommit () {
 	cvs add $@
