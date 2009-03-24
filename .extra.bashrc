@@ -7,7 +7,7 @@
 # in this file, and forked based on resource availability.
 # 
 # Functions are preferred over shell scripts, because then there's just
-# a few files to scp over to a new host for me to use it comfortably.
+# a few files to rsync over to a new host for me to use it comfortably.
 # 
 # .extra_Darwin.bashrc has significantly more stuff, since my mac is also
 # a GUI environment, and my primary platform.
@@ -49,7 +49,7 @@ for i in $path_elements; do
 	[ -d $i ] && path="$path$i "
 done
 export PATH=$(path=`echo $path`; echo ${path// /:})
-
+unset path
 
 # Use UTF-8, and throw errors in PHP and Perl if it's not available.
 # Note: this is VERY obnoxious if UTF8 is not available!
@@ -72,6 +72,8 @@ choose_first () {
 		fi
 	done
 }
+
+# fail if the file is not an executable in the path.
 inpath () {
 	! [ $# -eq 1 ] && echo "usage: inpath <file>" && return 1
 	f="`which $1 2>/dev/null`"
@@ -94,7 +96,7 @@ headless () {
 	fi
 }
 
-# function to do something in the background
+# do something in the background
 back () {
 	( $@ ) &
 }
@@ -110,6 +112,7 @@ foreach () {
 	done
 }
 
+# test javascript files for syntax errors.
 if inpath yuicompressor; then
 	testjs () {
 		for i in `find . -name "*.js"`; do
@@ -166,6 +169,9 @@ _set_editor () {
 }
 # my list of editors, by preference.
 _set_editor mate vim vi pico ed
+unset _set_editor
+alias k7ed="echo '' | $EDITOR | k7"
+alias k7sh="rlwrap $HOME/dev/k7/applications/shell/shell.js"
 
 # shebang <file> <program> [<args>]
 shebang () {
@@ -202,9 +208,8 @@ ENDSHEBANG
 	return 0
 }
 
+# Probably a better way to do this, but whatevs.
 rand () {
-	# r=``
-	# echo $r
 	echo `php -r 'echo rand();'`
 }
 
@@ -240,8 +245,10 @@ if ! inpath md5 && inpath php; then
 	# careful on this next trick. The php code can *not* use single-quotes.
 	echo  '<?php
 		// The BSD md5 checksum program, ported to PHP by Isaac Z. Schlueter
-
-		function main ($argv, $argc) /* int */ {
+		
+		exit main($argc, $argv);
+		
+		function /* int */ main ($argc, $argv) {
 			global $bin;
 			$return = true;
 			$bin = basename( array_shift($argv) );
@@ -253,7 +260,7 @@ if ! inpath md5 && inpath php; then
 				}
 			}
 			// convert to bash success/failure flag
-			exit( $return );
+			return $return;
 		}
 
 		function parseargs ($argv, $argc) {
@@ -378,8 +385,7 @@ if ! inpath md5 && inpath php; then
 			$f = in_array($flag, $flags) ? $flags[$flag] : ($flags[$flag] = false);
 			return ($set === null) ? $f : (($flags[$flag] = (bool)$set) || true) && $f;
 		}
-
-
+		
 		function usage ($option = "") {
 			global $bin;
 			if (!empty($option)) {
@@ -409,7 +415,6 @@ if ! inpath md5 && inpath php; then
 		function writeln ($str) {
 			echo "$str\n";
 		}
-		main($argv, $argc);
 	?>'>~/bin/md5
 	shebang ~/bin/md5 php "-d open_basedir="
 fi
@@ -452,7 +457,7 @@ fn () {
 alias lg="$ls_cmd -laF | $grep"
 alias chdir="cd"
 alias more="less -e"
-alias lsdevs="sudo lsof | $grep /dev"
+alias lsdevs="sudo lsof | $grep ' /dev'"
 
 
 # domain sniffing
@@ -839,23 +844,6 @@ repeat () {
 		clear
 		date +%s
 		$1
-	done
-}
-
-watch () {
-	if [ "$2" == "" ]; then
-		delay=1
-	else
-		delay="$2"
-	fi
-	i="";
-	j="";
-	while sleep $delay; do
-		i=`$1`;
-		if [ "$i" != "$j" ]; then
-			date +%s
-			echo $i
-		fi
 	done
 }
 
