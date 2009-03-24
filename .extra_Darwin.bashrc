@@ -126,6 +126,7 @@ unisonkill () {
 		kill $1 $id
 	done
 }
+alias uk=unisonkill
 
 [ `basename "$EDITOR"` == "mate_wait" ] && export LESSEDIT='mate_wait -l %lm %f'
 
