@@ -527,7 +527,7 @@ pushprof () {
 	rsync="rsync --copy-links -v -a -z"
 	for each in $@; do
 		if [ "$each" != "" ]; then
-			if $rsync ~/.{tarsnaprc,profile,extra,cvsrc,git}* $each:~ && \
+			if $rsync ~/.{inputrc,tarsnaprc,profile,extra,cvsrc,git}* $each:~ && \
 					$rsync ~/.ssh/*{.pub,authorized_keys,config} $each:~/.ssh/; then
 				echo "Pushed bash extras and public keys to $each"
 			else
