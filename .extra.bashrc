@@ -461,7 +461,7 @@ alias lsdevs="sudo lsof | $grep ' /dev'"
 
 
 # domain sniffing
-w () {
+wh () {
 	whois $1 | egrep -i '(registrar:|no match|record expires on|holder:)'
 }
 
