@@ -59,6 +59,8 @@ export LC_ALL=""
 export LANG=$LC_CTYPE
 export LANGUAGE=$LANG
 export TZ=America/Los_Angeles
+export HISTSIZE=1000000
+export HISTFILESIZE=1000000000
 
 # chooses the first argument that matches a file in the path.
 choose_first () {
