@@ -62,6 +62,9 @@ export TZ=America/Los_Angeles
 export HISTSIZE=1000000
 export HISTFILESIZE=1000000000
 
+# append to history rather than overwriting.
+shopt -s histappend
+
 # chooses the first argument that matches a file in the path.
 choose_first () {
 	for i in "$@"; do
@@ -768,7 +771,8 @@ HOSTNAME_FIRSTPART=${HOSTNAME%\.yahoo\.com};
 _arch=`uname`
 _bg=`[ $_arch == "Darwin" ] && echo 44 || echo 42`
 _color=`[ $_arch == "Darwin" ] && echo 1 || echo 30`
-PROMPT_COMMAND='__settitle "${__title}"
+PROMPT_COMMAND='history -a
+__settitle "${__title}"
 DIR=${PWD/$HOME/\~}
 export HOSTNAME=`uname -n`
 export HOSTNAME_FIRSTPART=${HOSTNAME%\.yahoo\.com}
