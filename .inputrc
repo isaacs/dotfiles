@@ -2,3 +2,6 @@
 "\e[B": history-search-forward
 "\e[C": forward-char
 "\e[D": backward-char
+set completion-ignore-case on
+set visible-stats on
+set show-all-if-ambiguous on
