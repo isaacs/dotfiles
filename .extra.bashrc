@@ -552,7 +552,9 @@ if [ $has_yinst == 1 ]; then
 elif [ -f "`which port 2>/dev/null`" ]; then
 	alias inst="sudo port install"
 	alias yl="port list installed"
-	alias yg="port list installed | $grep"
+	yg () {
+		port list '*'"$@"'*'
+	}
 	alias upup="sudo port sync && sudo port upgrade installed"
 elif [ -f "`which apt-get 2>/dev/null`" ]; then
 	alias inst="sudo apt-get install"
