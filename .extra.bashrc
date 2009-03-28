@@ -65,6 +65,11 @@ export HISTFILESIZE=1000000000
 # append to history rather than overwriting.
 shopt -s histappend
 
+# don't be so prickly about spelling
+shopt -s cdspell
+
+export CDPATH=.:..:$HOME/dev:$HOME
+
 # chooses the first argument that matches a file in the path.
 choose_first () {
 	for i in "$@"; do
