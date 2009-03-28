@@ -107,7 +107,7 @@ back () {
 }
 # do something very quietly.
 quiet () {
-	( $@ ) >/dev/null 2>/dev/null
+	( $@ ) &>/dev/null
 }
 #do something to all the things on standard input.
 # echo 1 2 3 | foreach echo foo is like calling echo foo 1; echo foo 2; echo foo 3;
@@ -471,10 +471,6 @@ wh () {
 }
 
 
-# find files in current dir by name (not in package dirs)
-f () {
-	find . -name "$1" -not -path "*/rhel.*.*.package/*" -not -path "*/CVS/*" -not -path "*/CVS" -not -path "*/rhel.*.*.package"
-}
 
 #make tree a little cooler looking.
 alias tree="tree -CAFa -I 'CVS|rhel.*.*.package|.svn|.git' --dirsfirst"
