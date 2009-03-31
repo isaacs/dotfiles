@@ -38,7 +38,7 @@ fi
 
 # set some globals
 if ! [ -f "$HOME" ]; then
-	export HOME="`echo ~`"
+	export HOME="$(echo ~)"
 fi
 
 path=$HOME/bin:$HOME/scripts:/home/y/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include
@@ -48,7 +48,7 @@ path=""
 for i in $path_elements; do
 	[ -d $i ] && path="$path$i "
 done
-export PATH=$(path=`echo $path`; echo ${path// /:})
+export PATH=$(path=$(echo $path); echo ${path// /:})
 unset path
 
 # Use UTF-8, and throw errors in PHP and Perl if it's not available.
@@ -70,11 +70,14 @@ shopt -s cdspell
 
 export CDPATH=.:..:$HOME/dev:$HOME
 
+# read a line from stdin, write to stdout.
+getln () { read "$@" t && echo $t; }
+
 # chooses the first argument that matches a file in the path.
 choose_first () {
 	for i in "$@"; do
 		if ! [ -f "$i" ] && inpath "$i"; then
-			i="`which $i`"
+			i="$(which "$i")"
 		fi
 		if [ -f "$i" ]; then
 			echo $i
@@ -86,7 +89,7 @@ choose_first () {
 # fail if the file is not an executable in the path.
 inpath () {
 	! [ $# -eq 1 ] && echo "usage: inpath <file>" && return 1
-	f="`which $1 2>/dev/null`"
+	f="$(which "$1" 2>/dev/null)"
 	[ -f "$f" ] && return 0
 	return 1
 }
@@ -95,7 +98,7 @@ inpath () {
 # to reconnect, do: headless "" <key>
 headless () {
 	if [ "$2" == "" ]; then
-		hash=`md5 -qs "$1"`
+		hash=$(md5 -qs "$1")
 	else
 		hash="$2"
 	fi
@@ -108,25 +111,25 @@ headless () {
 
 # do something in the background
 back () {
-	( $@ ) &
+	( "$@" ) &
 }
 # do something very quietly.
 quiet () {
-	( $@ ) &>/dev/null
+	( "$@" ) &>/dev/null
 }
 #do something to all the things on standard input.
 # echo 1 2 3 | foreach echo foo is like calling echo foo 1; echo foo 2; echo foo 3;
 foreach () {
-	for i in `cat /dev/stdin`; do
-		$@ $i;
+	for i in $(cat /dev/stdin); do
+		"$@" $i;
 	done
 }
 
 # test javascript files for syntax errors.
 if inpath yuicompressor; then
 	testjs () {
-		for i in `find . -name "*.js"`; do
-			err="`yuicompressor -o /dev/null $i 2>/dev/stdout`"
+		for i in $(find . -name "*.js"); do
+			err="$(yuicompressor -o /dev/null $i 2>/dev/stdout)"
 			if [ "$err" != "" ]; then
 				echo "$i has errors:"
 				echo "$err"
@@ -137,9 +140,9 @@ fi
 
 # give a little colou?r to grep commands, if supported
 grep=grep
-if [ "`grep --help | grep color`" != "" ]; then
+if [ "$(grep --help | grep color)" != "" ]; then
 	grep="grep --color"
-elif [ "`grep --help | grep colour`" != "" ]; then
+elif [ "$(grep --help | grep colour)" != "" ]; then
 	grep="grep --colour"
 fi
 alias grep="$grep"
@@ -148,16 +151,16 @@ alias grep="$grep"
 # substitute "this" for "that" if "this" exists and is in the path.
 substitute () {
 	! [ $# -eq 2 ] && echo "usage: substitute <desired> <orig>" && return 1
-	inpath "$1" && new="`which $1`" && alias $2="$new"
+	inpath "$1" && new="$(which "$1")" && alias $2="$new"
 }
 
 substitute yssh ssh
 substitute yscp scp
 
 export CVSROOT=vault.yahoo.com:/CVSROOT
-export CVS_RSH=`choose_first yssh ssh`
-export SVN_RSH=`choose_first yssh ssh`
-export RSYNC_RSH=`choose_first yssh ssh`
+export CVS_RSH=$(choose_first yssh ssh)
+export SVN_RSH=$(choose_first yssh ssh)
+export RSYNC_RSH=$(choose_first yssh ssh)
 
 [ -d ~/dev/main/yahoo ] && export SRCTOP=~/dev/main/yahoo 
 
@@ -166,7 +169,7 @@ inpath yinst && has_yinst=1
 
 # useful commands:
 _set_editor () {
-	edit_cmd="`choose_first $@`"
+	edit_cmd="$( choose_first "$@" )"
 	if [ -f "$edit_cmd" ]; then
 		if [ -f "${edit_cmd}_wait" ]; then
 			export EDITOR="${edit_cmd}_wait"
@@ -198,7 +201,7 @@ shebang () {
 		return 1
 	fi
 	prog="$2"
-	! [ -f "$prog" ] && prog="`which $prog 2>/dev/null`"
+	! [ -f "$prog" ] && prog="$(which "$prog" 2>/dev/null)"
 	if ! [ -x "$prog" ]; then
 		echo "$sb: $2 is not executable, or not in path."
 		return 1
@@ -206,13 +209,13 @@ shebang () {
 	chmod ogu+x "$1"
 	prog="#!$prog"
 	[ "$3" != "" ] && prog="$prog $3"
-	if ! [ "`head -n 1 \"$1\"`" == "$prog" ]; then
-		contents="`cat \"$1\"`"
-		newcontents=`cat <<ENDSHEBANG
+	if ! [ "$(head -n 1 "$1")" == "$prog" ]; then
+		contents="$(cat "$1")"
+		newcontents=$(cat <<ENDSHEBANG
 $prog
 $contents
 ENDSHEBANG
-`
+)
 		echo -n "$newcontents" > $1
 	fi
 	return 0
@@ -220,7 +223,7 @@ ENDSHEBANG
 
 # Probably a better way to do this, but whatevs.
 rand () {
-	echo `php -r 'echo rand();'`
+	echo $(php -r 'echo rand();')
 }
 
 pickrand () {
@@ -233,7 +236,7 @@ pickrand () {
 	for i in *; do
 		[ $tst "$i" ] && let 'cnt += 1'
 	done
-	r=`rand`
+	r=$(rand)
 	p=0
 	[ $cnt -eq 0 ] && return 1
 	let 'p = r % cnt'
@@ -347,10 +350,6 @@ if ! inpath md5 && inpath php; then
 		*/
 
 		function cksumFile ($file) {
-			// echo "in > cksumFile($file)\n";
-			// echo "\noriginal: \n";
-			// echo `md5_original $file`;
-
 			$missing = !file_exists($file);
 			$isdir = $missing ? 0 : is_dir($file); // only call if necessary
 			if ( $missing || $isdir ) {
@@ -447,8 +446,8 @@ fi
 alias mvsafe="mv -i"
 
 lscolor=""
-if [ "$TERM" != "dumb" ] && [ -f "`which dircolors 2>/dev/null`" ]; then
-	eval "`dircolors -b`"
+if [ "$TERM" != "dumb" ] && [ -f "$(which dircolors 2>/dev/null)" ]; then
+	eval "$(dircolors -b)"
 	lscolor=" --color=auto"
 	#alias dir='ls --color=auto --format=vertical'
 	#alias vdir='ls --color=auto --format=long'
@@ -460,7 +459,7 @@ alias lal="$ls_cmd -laFL"
 alias ll="$ls_cmd -lF"
 alias ag="alias | $grep"
 fn () {
-	func=`set | egrep '^[a-zA-Z0-9_-]+ ()' | egrep -v '^_' | awk '{print $1}' | grep "$1"`
+	func=$(set | egrep '^[a-zA-Z0-9_-]+ ()' | egrep -v '^_' | awk '{print $1}' | grep "$1")
 	[ -z "$func" ] && echo "$1 is not a function" > /dev/stderr && return 1
 	echo $func && return 0
 }
@@ -510,7 +509,7 @@ if [ -d "$HOME/apache/log/" ]; then
 	alias yapl="__yapl"
 	alias yaprl="__yaprl"
 else
-	apache_log="`choose_first /home/y/logs/yapache/php-error /home/y/logs/yapache/error /home/y/logs/yapache/error_log /home/y/logs/yapache/us/error_log /home/y/logs/yapache/us/error /opt/local/apache2/logs/error_log /var/log/httpd/error_log /var/log/httpd/error`"
+	apache_log="$(choose_first /home/y/logs/yapache/php-error /home/y/logs/yapache/error /home/y/logs/yapache/error_log /home/y/logs/yapache/us/error_log /home/y/logs/yapache/us/error /opt/local/apache2/logs/error_log /var/log/httpd/error_log /var/log/httpd/error)"
 	yapl="tail -f $apache_log"
 	alias yaprl="$yapr;$yapl"
 	alias yapl="$yapl"
@@ -531,7 +530,7 @@ pushprof () {
 	[ "$1" == "" ] && echo "no hostname provided" && return 1
 	failures=0
 	rsync="rsync --copy-links -v -a -z"
-	for each in $@; do
+	for each in "$@"; do
 		if [ "$each" != "" ]; then
 			if $rsync ~/.{inputrc,tarsnaprc,profile,extra,cvsrc,git}* $each:~ && \
 					$rsync ~/.ssh/*{.pub,authorized_keys,config} $each:~/.ssh/; then
@@ -549,14 +548,14 @@ if [ $has_yinst == 1 ]; then
 	alias inst="yinst install"
 	alias yl="yinst ls"
 	alias yg="yinst ls | $grep"
-elif [ -f "`which port 2>/dev/null`" ]; then
+elif [ -f "$(which port 2>/dev/null)" ]; then
 	alias inst="sudo port install"
 	alias yl="port list installed"
 	yg () {
 		port list '*'"$@"'*'
 	}
 	alias upup="sudo port sync && sudo port upgrade installed"
-elif [ -f "`which apt-get 2>/dev/null`" ]; then
+elif [ -f "$(which apt-get 2>/dev/null)" ]; then
 	alias inst="sudo apt-get install"
 	alias yl="dpkg --list | egrep '^ii'"
 	alias yg="dpkg --list | egrep '^ii' | $grep"
@@ -571,7 +570,7 @@ fi
 clearconflicts () {
 	edit=""
 	clear=""
-	for i in `cvs up | egrep '^C' | egrep -o '[^C\ ].*$'`; do
+	for i in $(cvs up | egrep '^C' | egrep -o '[^C\ ].*$'); do
 		if [ -f "$i" ]; then
 			echo ""
 			echo -n "$i - what to do? (C)lean copy, (E)dit, (S)kip (skip) "
@@ -598,7 +597,7 @@ clearconflicts () {
 }
 
 cvsunknown () {
-	for i in `uq`; do
+	for i in $(uq); do
 		if [ -f "$i" ]; then
 			echo ""
 			echo -n "$i - what to do? (R)emove, (S)kip (skip) "
@@ -611,7 +610,7 @@ cvsunknown () {
 }
 
 diffless () {
-  cvs diff $@ | less
+  cvs diff "$@" | less
 }
 alias cu="cvs up"
 alias ug="cvs up | egrep '^[^\?]'"
@@ -635,12 +634,12 @@ gpm () {
 }
 
 addcommit () {
-	cvs add $@
-	cvs commit $@
+	cvs add "$@"
+	cvs commit "$@"
 }
 cvsrm () {
-	rm $@
-	cvs rm $@
+	rm "$@"
+	cvs rm "$@"
 }
 alias cvsrev="cvs update -f -r "
 
@@ -651,7 +650,7 @@ cvscleanup () {
 	files=""
 	COUNTER=0
 
-	for f in [`ls -RA | egrep "(^\.|\.bak$)"`];
+	for f in [$(ls -RA | egrep "(^\.|\.bak$)")];
 	do
 		if [ ${f:0:1} = "[" ]; then
 			f=${f:1}
@@ -693,7 +692,7 @@ cvscleanup () {
 		echo "OK to delete $COUNTER file(s)? (enter Y to delete)"
 		read doit
 		if [ "$doit" = "Y" ]; then
-			`rm $files`
+			$(rm $files)
 			echo "done"
 		else
 			echo "cancelled"
@@ -707,7 +706,7 @@ cvscleanup () {
 
 #get the ip address of a host easily.
 getip () {
-	for each in $@; do
+	for each in "$@"; do
 		echo $each
 		echo "nslookup:"
 		nslookup $each | grep Address: | grep -v '#' | egrep -o '([0-9]+\.){3}[0-9]+'
@@ -769,15 +768,15 @@ title () {
 }
 
 #show the short hostname, selected title, and yroot, and update them all on each prompt
-HOSTNAME=`uname -n`;
+HOSTNAME=$(uname -n);
 HOSTNAME_FIRSTPART=${HOSTNAME%\.yahoo\.com};
-_arch=`uname`
-_bg=`[ $_arch == "Darwin" ] && echo 44 || echo 42`
-_color=`[ $_arch == "Darwin" ] && echo 1 || echo 30`
+_arch=$(uname)
+_bg=$([ $_arch == "Darwin" ] && echo 44 || echo 42)
+_color=$([ $_arch == "Darwin" ] && echo 1 || echo 30)
 PROMPT_COMMAND='history -a
 __settitle "${__title}"
 DIR=${PWD/$HOME/\~}
-export HOSTNAME=`uname -n`
+export HOSTNAME=$(uname -n)
 export HOSTNAME_FIRSTPART=${HOSTNAME%\.yahoo\.com}
 t=""
 [ "$TITLE" != "" ] && t="$TITLE — "
@@ -791,10 +790,10 @@ PS1="\n[\t \u] \\$ "
 # view processes.
 alias processes="ps axMuc | egrep '^[a-zA-Z0-9]'"
 pg () {
-	ps aux | grep $@ | grep -v "$grep $@"
+	ps aux | $grep "$@" | grep -v "$( echo $grep "$@" )"
 }
 pid () {
-	pg $@ | awk '{print $2}'
+	pg "$@" | awk '{print $2}'
 }
 
 alias v="ssh visitbread.corp.yahoo.com"
@@ -809,15 +808,15 @@ sshagents () {
 	find /tmp/ -type s | grep -i ssh
 }
 agent () {
-	eval `ssh-agent`
+	eval $( ssh-agent )
 	ssh-add
 }
 
 fhcp () {
-	p=`pwd`
-	for i in $@; do
+	p="$PWD"
+	for i in "$@"; do
 		if [ -d "$p/$i" ] || [ -f "$p/$i" ]; then
-			dir=`dirname $p/$i`
+			dir=$(dirname "$p/$i")
 			siteroot=~/Sites/
 			rdir=${dir##$siteroot}
 			echo "Sending $i"
@@ -827,15 +826,15 @@ fhcp () {
 }
 
 fhfetch () {
-	p=`pwd`
-	for i in $@; do
-		dir=`dirname $p/$i`
+	p="$PWD"
+	for i in "$@"; do
+		dir=$(dirname "$p/$i")
 		siteroot=~/Sites
 		# siteroot=$siteroot
 		# dir=$dir
 		rdir=${dir##$siteroot}
 		# echo rdir=$rdir
-		file=`basename $i`
+		file=$(basename "$i")
 		# file=$file
 		rsync -vazu --no-implied-dirs --stats --exclude=".*\.svn.*" foohack.com:~/apache$rdir/$file $dir/
 		#scp -r foohack.com:~/apache$rdir/$file $dir
@@ -884,18 +883,18 @@ stripc () {
 	echo $o
 }
 cm () {
-	g++ -o `stripc "$1"` "$1"
+	g++ -o $(stripc "$1") "$1"
 }
 cr () {
-	cm "$1" && ./`stripc "$1"`
+	cm "$1" && ./$(stripc "$1")
 }
 
 # weekly status texts for team updates.
 weekly () {
 	$EDITOR ~/weeklystatus.txt
 	# change the first line to reflect last updated status.
-	fl=$( echo \# $( finger `whoami` | egrep -o 'Name: .*' | egrep -o '[^:\ ]+' | grep -v 'Name' ) `date +%Y-%m-%d` )
-	rest="$( l=`cat ~/weeklystatus.txt | wc -l`; let 'l -= 1'; tail -n $l ~/weeklystatus.txt )"
+	fl=$( echo \# $( finger $(whoami) | egrep -o 'Name: .*' | egrep -o '[^:\ ]+' | grep -v 'Name' ) $(date +%Y-%m-%d) )
+	rest="$( l=$(cat ~/weeklystatus.txt | wc -l); let 'l -= 1'; tail -n $l ~/weeklystatus.txt )"
 	cat <<STATUS >~/weeklystatus.txt
 $fl
 $rest
@@ -915,33 +914,33 @@ ts () {
 	fi
 	if [ $# -gt 1 ]; then
 		errors=0
-		for i in $@; do
+		for i in "$@"; do
 			ts $i || let 'errors += 1'
 		done
 		return $errors
 	fi
-	thetitle=`title`
+	thetitle=$(title)
 	thefile="$1"
 	$e "backing up $thefile"
 	title "backing up $thefile"
-	backupfile="`hostname`:${thefile/\//}:`date +%Y-%m-%d-%H-%M-%S`"
+	backupfile="$(hostname):${thefile/\//}:$(date +%Y-%m-%d-%H-%M-%S)"
 	backupfile=${backupfile//\//-}
 	tarsnap -cvf "$backupfile" $thefile 2> ~/.tslog
 	$e "done backing up $thefile"
 	title "$thetitle"
 }
 tsbg () {
-	( ts $@ ) &
+	( ts "$@" ) &
 }
 tsh () {
 	# headless <command> [<key>]
-	headless "ts $@" ts-headless-backup
+	headless ts "$@" ts-headless-backup
 }
 tskill () {
-	kill -s SIGQUIT `pid tarsnap`
+	kill -s SIGQUIT $(pid tarsnap)
 }
 tsabort () {
-	kill `pid tarsnap`
+	kill $(pid tarsnap)
 }
 tslisten () {
 	tail -f ~/.tslog
@@ -952,9 +951,9 @@ tsl () {
 
 
 #load any per-platform .extra.bashrc files.
-arch=`uname -s`;
+arch=$(uname -s);
 [ -f ~/.extra_$arch.bashrc ] && . ~/.extra_$arch.bashrc
-machinearch=`uname -m`
+machinearch=$(uname -m)
 [ -f ~/.extra_${arch}_${machinearch}.bashrc ] && . ~/.extra_${arch}_${machinearch}.bashrc
 [ $has_yinst == 1 ] && [ -f ~/.extra_yinst.bashrc ] && . ~/.extra_yinst.bashrc
 inpath "git" && [ -f ~/.git-completion ] && . ~/.git-completion
