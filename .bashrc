@@ -1,1 +1,2 @@
-! [ "$BASH_EXTRAS_LOADED" ] && . .extra.bashrc
+DOT_BASHRC_LOADED=1
+! [ "$DOT_PROFILE_LOADED" == "1" ] && . .profile
