@@ -107,8 +107,7 @@ unisonstart () {
 	growlnotify -a Unison -t Unison -m stopped.
 }
 unisonquiet () {
-	echo "" > ~/.unisonlog
-	headless '( unisonstart &>~/.unisonlog ) &'
+	headless 'back unisonstart &>~/.unisonlog' unisonsession
 }
 unisonlisten () {
 	title unison
@@ -139,3 +138,5 @@ ahyaneupdate () {
 }
 
 alias photoshop='open -a Adobe\ Photoshop\ CS3'
+
+export QTDIR=/opt/local/lib/qt3
