@@ -215,13 +215,8 @@ shebang () {
 	prog="#!$prog"
 	[ "$3" != "" ] && prog="$prog $3"
 	if ! [ "$(head -n 1 "$1")" == "$prog" ]; then
-		contents="$(cat "$1")"
-		newcontents=$(cat <<ENDSHEBANG
-$prog
-$contents
-ENDSHEBANG
-)
-		echo -n "$newcontents" > $1
+		tmp=$(mktemp shebang.XXXX)
+		return cat <(echo $prog) $1 > $tmp && mv $tmp $1
 	fi
 	return 0
 }
