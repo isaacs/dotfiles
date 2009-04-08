@@ -94,6 +94,11 @@ inpath () {
 	return 1
 }
 
+# show a certain line of a file, or stdin
+line () {
+	sed ${1-0}'!d;q' < ${2-/dev/stdin}
+}
+
 # headless <command> [<key>]
 # to reconnect, do: headless "" <key>
 headless () {
