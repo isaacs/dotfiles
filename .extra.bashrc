@@ -625,6 +625,19 @@ alias sg="svn up"
 alias sq="svn status | egrep '^\?' | egrep -o '[^\?\ ].*$'"
 alias sm="svn status | egrep '^(M|A)' | egrep -o '[^MA\ ].*$'"
 alias svncleanup="sudo find . -name '.svn' -exec rm -rf {} \; ;"
+pulltrunk () {
+	[ $(svn status -q | wc -l) -eq 0 ] || \
+		echo "Unclean environment. Cannot safely pull from trunk." && \
+		return 1
+	svn merge $(\
+		grep 'svn+ssh' .svn/entries | \
+		head -n1 | \
+		perl -pi -e 's/(branches|tags)\/[^\/]+/trunk/' \
+	) . \
+	|grep -v '^-' \
+	|awk '{print $2}' \
+	|xargs svn ci -m "Merge from trunk"
+}
 
 alias gci="git commit"
 alias gpu="git pull"
