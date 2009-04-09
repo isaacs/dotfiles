@@ -627,10 +627,8 @@ pulltrunk () {
 	[ $(svn status -q | wc -l) -eq 0 ] || \
 		echo "Unclean environment. Cannot safely pull from trunk." && \
 		return 1
-	svn merge $(\
-		grep 'svn+ssh' .svn/entries | \
-		head -n1 | \
-		perl -pi -e 's/(branches|tags)\/[^\/]+/trunk/' \
+	svn merge $(
+		grep 'svn+ssh' .svn/entries | head -n1 | perl -pi -e 's/(branches|tags)\/[^\/]+/trunk/'
 	) . \
 	|grep -v '^-' \
 	|awk '{print $2}' \
