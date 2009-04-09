@@ -1697,4 +1697,4 @@ complete -o default -o nospace -F _gitk gitk
 if [ Cygwin = "$(uname -o 2>/dev/null)" ]; then
 complete -o default -o nospace -F _git git.exe
 fi
-PS1=' \033[44m\033[31m$(__git_ps1 "%s")\033[0m'$PS1
+# PS1=' \033[44m\033[31m$(__git_ps1 "%s")\033[0m'$PS1

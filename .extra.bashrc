@@ -614,16 +614,14 @@ diffless () {
 }
 alias cu="cvs up"
 alias ug="cvs up | egrep '^[^\?]'"
-# alias uc="cvs up -C" # This is convenient but WAAAAYYY too powerful!!
 alias um="cvs up | egrep '^(M|A)' | egrep -o '[^MA\ ].*$'"
 alias uq="cvs up | egrep '^\?' | egrep -o '[^\?\ ].*$'"
 alias cci="cvs ci"
 
-# alias sc="svn up -C" # This is convenient but WAAAAYYY too powerful!!
 alias sci="svn ci"
 alias sg="svn up"
 alias sq="svn status | egrep '^\?' | egrep -o '[^\?\ ].*$'"
-alias sm="svn status | egrep '^(M|A)' | egrep -o '[^MA\ ].*$'"
+alias sm="svn status -q"
 alias svncleanup="sudo find . -name '.svn' -exec rm -rf {} \; ;"
 pulltrunk () {
 	[ $(svn status -q | wc -l) -eq 0 ] || \
@@ -637,6 +635,11 @@ pulltrunk () {
 	|grep -v '^-' \
 	|awk '{print $2}' \
 	|xargs svn ci -m "Merge from trunk"
+}
+__svn_ps1 () {
+	[ -d $PWD/.svn ] && echo -ne " "$(
+		grep 'svn+ssh' .svn/entries | egrep -o '(tags|branches)/[^/]+|trunk' | egrep -o '[^/]+$'
+	)" "
 }
 
 alias gci="git commit"
@@ -793,12 +796,14 @@ export HOSTNAME=$(uname -n)
 export HOSTNAME_FIRSTPART=${HOSTNAME%\.yahoo\.com}
 t=""
 [ "$TITLE" != "" ] && t="$TITLE — "
-echo -ne "\033]0;$t${HOSTNAME_FIRSTPART%%\.*}:$DIR\007"
 echo ""
+echo -ne "\033[0m\033]0;$t${HOSTNAME_FIRSTPART%%\.*}:$DIR\007"
 [ "$TITLE" ] && echo -ne "\033[${_color}m\033[${_bg}m $TITLE \033[0m"
-echo -ne "\033[1;41m ${HOSTNAME_FIRSTPART} \033[0m:$DIR"'
+echo -ne "\033[1;41m ${HOSTNAME_FIRSTPART} \033[0m:$DIR \033[1;30m\033[40m$(__svn_ps1)$(__git_ps1  " %s ")\033[0m"'
+PS1='\n[\t \u] \\$ '
 #this part gets repeated when you tab to see options
-PS1="\n[\t \u] \\$ "
+# \n[\t \u] \\$ "
+# PS1=' '$PS1
 
 # view processes.
 alias processes="ps axMuc | egrep '^[a-zA-Z0-9]'"
