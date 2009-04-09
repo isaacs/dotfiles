@@ -547,7 +547,9 @@ pushprof () {
 if [ $has_yinst == 1 ]; then
 	alias inst="yinst install"
 	alias yl="yinst ls"
-	alias yg="yinst ls | $grep"
+	yg () {
+		yinst ls | $grep "$@"
+	}
 elif [ -f "$(which port 2>/dev/null)" ]; then
 	alias inst="sudo port install"
 	alias yl="port list installed"
@@ -558,7 +560,9 @@ elif [ -f "$(which port 2>/dev/null)" ]; then
 elif [ -f "$(which apt-get 2>/dev/null)" ]; then
 	alias inst="sudo apt-get install"
 	alias yl="dpkg --list | egrep '^ii'"
-	alias yg="dpkg --list | egrep '^ii' | $grep"
+	yg () {
+		dpkg --list | egrep '^ii' | $grep "$@"
+	}
 	alias upup="sudo apt-get update && sudo apt-get upgrade"
 fi
 
