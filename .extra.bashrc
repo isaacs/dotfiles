@@ -635,9 +635,13 @@ pulltrunk () {
 	|xargs svn ci -m "Merge from trunk"
 }
 __svn_ps1 () {
-	[ -d $PWD/.svn ] && echo -ne " "$(
-		grep 'svn+ssh' .svn/entries | egrep -o '(tags|branches)/[^/]+|trunk' | egrep -o '[^/]+$'
-	)" "
+	[ -d $PWD/.svn ] return
+	info="$(
+		svn info | egrep -o '(tags|branches)/[^/]+|trunk' | egrep -o '[^/]+$'
+	)"
+	! [ -n "$info" ] && return
+	[ -n "$1" ] && format="$1" || format=" %s "
+	printf "$format" "$info"
 }
 
 alias gci="git commit"
@@ -797,7 +801,7 @@ t=""
 echo ""
 echo -ne "\033[0m\033]0;$t${HOSTNAME_FIRSTPART%%\.*}:$DIR\007"
 [ "$TITLE" ] && echo -ne "\033[${_color}m\033[${_bg}m $TITLE \033[0m"
-echo -ne "\033[1;41m ${HOSTNAME_FIRSTPART} \033[0m:$DIR \033[1;30m\033[40m$(__svn_ps1)$(__git_ps1  " %s ")\033[0m"'
+echo -ne "\033[1;41m ${HOSTNAME_FIRSTPART} \033[0m:$DIR \033[1;30m\033[40m$((__svn_ps1;__git_ps1 " %s ") 2>/dev/null)\033[0m"'
 PS1='\n[\t \u] \\$ '
 #this part gets repeated when you tab to see options
 # \n[\t \u] \\$ "
