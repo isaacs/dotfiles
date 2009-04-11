@@ -1,6 +1,5 @@
 # Used on platforms that support yinst commands.
 export ROOT=/home/y
-alias yg="yinst list | grep "
 
 portshift () {
 	[ $# -gt 1 ] && from="$1" && to="$2"
@@ -12,7 +11,6 @@ portshift () {
 	); do s="$s $i=$to"; echo $i=$to; done
 	yinst set $s
 }
-
 
 relink () {
 	br="$1"

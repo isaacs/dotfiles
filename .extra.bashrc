@@ -465,7 +465,8 @@ fn () {
 }
 alias lg="$ls_cmd -laF | $grep"
 alias chdir="cd"
-alias more="less -e"
+# alias more="less -e"
+export MANPAGER=more
 alias lsdevs="sudo lsof | $grep ' /dev'"
 
 
@@ -628,15 +629,12 @@ alias sq="svn status | egrep '^\?' | egrep -o '[^\?\ ].*$'"
 alias sm="svn status -q"
 alias svncleanup="sudo find . -name '.svn' -exec rm -rf {} \; ;"
 pulltrunk () {
-	[ $(svn status -q | wc -l) -eq 0 ] || \
-		echo "Unclean environment. Cannot safely pull from trunk." && \
+	if ! [ $(svn status -q | wc -l) -eq 0 ]; then
+		echo "Unclean environment. Cannot safely pull from trunk."
 		return 1
-	svn merge $(
-		grep 'svn+ssh' .svn/entries | head -n1 | perl -pi -e 's/(branches|tags)\/[^\/]+/trunk/'
-	) . \
-	|grep -v '^-' \
-	|awk '{print $2}' \
-	|xargs svn ci -m "Merge from trunk"
+	fi
+	trunk=$( svn info | grep '^URL:' | awk '{print $2}' | perl -pi -e 's/(branches|tags)\/[^\/]+/trunk/' )
+	svn merge $trunk && svn up && svn ci -m "Merge from trunk"
 }
 __svn_ps1 () {
 	[ -d $PWD/.svn ] return
@@ -664,6 +662,11 @@ cvsrm () {
 	cvs rm "$@"
 }
 alias cvsrev="cvs update -f -r "
+
+# look up a word
+dict () {
+	curl -s dict://dict.org/d:$1 | perl -ne 's/\r//; last if /^\.$/; print if /^151/../^250/' | more
+}
 
 # finds and deletes .DS_Store, *.bak, and .# files.
 # Doesn't handle files with spaces in the name, but in that case, probably won't cause problems, just won't work.
