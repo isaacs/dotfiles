@@ -1,6 +1,9 @@
 # Used on platforms that support yinst commands.
 export ROOT=/home/y
 
+# pull in the yvm tab-completions
+[ -e /home/y/etc/yvm.bashrc ] && . /home/y/etc/yvm.bashrc
+
 portshift () {
 	[ $# -gt 1 ] && from="$1" && to="$2"
 	[ $# -eq 1 ] && from="80" && to="$1"
