@@ -646,6 +646,10 @@ __svn_ps1 () {
 	[ -n "$1" ] && format="$1" || format=" %s "
 	printf "$format" "$info"
 }
+# recursive grep with ignores.
+gri () {
+	grep -rs "$@" . | egrep -v '.svn/|CVS/'
+}
 
 alias gci="git commit"
 alias gpu="git pull"
