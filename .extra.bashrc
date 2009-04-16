@@ -966,7 +966,7 @@ tsbg () {
 }
 tsh () {
 	# headless <command> [<key>]
-	headless ts "$@" ts-headless-backup
+	headless "ts $@" ts-headless-backup
 }
 tskill () {
 	kill -s SIGQUIT $(pid tarsnap)
