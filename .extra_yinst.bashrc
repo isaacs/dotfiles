@@ -21,8 +21,9 @@ relink () {
 	if ! [ -f "`which yinst_create`" ]; then
 		yinst i yinst_create
 	fi
-	rm *.tgz
-	yinst_create -t link && yinst i *.tgz $br
+	rm *.tgz &>/dev/null
+	yinst_create -t link && yinst i *.tgz $br && return 0
+	return 1
 }
 
 rebuild () {
