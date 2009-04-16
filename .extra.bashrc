@@ -216,7 +216,8 @@ shebang () {
 	[ "$3" != "" ] && prog="$prog $3"
 	if ! [ "$(head -n 1 "$1")" == "$prog" ]; then
 		tmp=$(mktemp shebang.XXXX)
-		return cat <(echo $prog) $1 > $tmp && mv $tmp $1
+		cat <(echo $prog) $1 > $tmp && cat $tmp > $1 && rm $tmp && return 0 || \
+			echo "Something fishy happened!" && return 1
 	fi
 	return 0
 }
