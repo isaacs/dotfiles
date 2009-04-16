@@ -512,7 +512,7 @@ if [ -d "$HOME/apache/log/" ]; then
 	alias yaprl="__yaprl"
 else
 	apache_log="$(choose_first /home/y/logs/yapache/php-error /home/y/logs/yapache/error /home/y/logs/yapache/error_log /home/y/logs/yapache/us/error_log /home/y/logs/yapache/us/error /opt/local/apache2/logs/error_log /var/log/httpd/error_log /var/log/httpd/error)"
-	yapl="tail -f $apache_log"
+	yapl="tail -f $apache_log | egrep -v '^E|udbClient'"
 	alias yaprl="$yapr;$yapl"
 	alias yapl="$yapl"
 fi
