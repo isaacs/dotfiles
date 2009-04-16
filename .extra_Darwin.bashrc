@@ -85,7 +85,7 @@ cvsdiff () {
 unison_bin="`which unison`"
 unison_prof="yap"
 unison () {
-	$unison_bin -logfile /dev/null -ui text -times -ignore 'Regex .*docs/2008[0-9]{4}/.*' -ignore 'Regex .*/(FreeBSD|rhel)\.[0-9]+\.[0-9]+\.package.*' -ignore 'Regex .*\.svn' -ignore 'Regex .*/\.DS_Store' $@ $unison_prof
+	$unison_bin -logfile /dev/null -ui text -times -ignore 'Regex .*docs/2008[0-9]{4}/.*' -ignore 'Regex .*/(FreeBSD|rhel)\.[0-9]+\.[0-9]+\.package.*' -ignore 'Regex .*\.svn' -ignore 'Regex .*/svn-commit*.tmp' -ignore 'Regex .*/\.DS_Store' $@ $unison_prof
 }
 # unison () {
 # 	$unison_bin -ui text -logfile /dev/stdout -ignore 'Regex .*docs/2008[0-9]{4}/.*' -ignore 'Regex .*/(FreeBSD|rhel)\.[0-9]+\.[0-9]+\.package.*' -ignore 'Regex .*/\.DS_Store' -times $@ $unison_prof
