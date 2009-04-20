@@ -70,6 +70,8 @@ shopt -s cdspell
 
 export CDPATH=.:..:$HOME/dev:$HOME
 
+alias ..="cd .."
+
 # read a line from stdin, write to stdout.
 getln () { read "$@" t && echo $t; }
 
