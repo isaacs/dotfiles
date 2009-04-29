@@ -115,7 +115,7 @@ unisonlisten () {
 	if [ "$pid" == "" ]; then
 		unisonquiet
 	else
-		echo [$pid] (already running)
+		echo [$pid]" (already running)"
 	fi
 	tail -f ~/.unisonlog
 }
@@ -170,7 +170,7 @@ update_webkit () {
 	cp -R /tmp/latest-webkit-svn/WebKit.app /Applications/WebKit.app
 
 	hdiutil detach /tmp/latest-webkit-svn -quiet
-	rm /tmp/latest-webkit-svn.dmg 2>/dev/null
+	# rm /tmp/latest-webkit-svn.dmg 2>/dev/null
 
 	echo "WebKit updated to $latest."
 	return 0
