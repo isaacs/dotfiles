@@ -161,19 +161,21 @@ update_webkit () {
 	
 	hdiutil attach /tmp/latest-webkit-svn.dmg -mountpoint /tmp/latest-webkit-svn -quiet
 	
-	killall -QUIT WebKit
-	killall -QUIT DroseraLauncher
+	killall -QUIT WebKit 2>/dev/null
+	rm -rf /Applications/WebKit.app 2>/dev/null
 
-	rm -rf /Applications/Drosera.app /Applications/WebKit.app 2>/dev/null
-	
-	cp -R /tmp/latest-webkit-svn/Drosera.app /Applications/Drosera.app
-	cp -R /tmp/latest-webkit-svn/WebKit.app /Applications/WebKit.app
+	ret=0
+	if cp -R /tmp/latest-webkit-svn/WebKit.app /Applications/WebKit.app; then
+		echo "WebKit updated to $latest."
+	else
+		echo "Failed to update" >/dev/stderr
+		ret=1
+	fi
 
 	hdiutil detach /tmp/latest-webkit-svn -quiet
-	# rm /tmp/latest-webkit-svn.dmg 2>/dev/null
+	rm /tmp/latest-webkit-svn.dmg 2>/dev/null
 
-	echo "WebKit updated to $latest."
-	return 0
+	return $ret
 }
 
 export QTDIR=/opt/local/lib/qt3
