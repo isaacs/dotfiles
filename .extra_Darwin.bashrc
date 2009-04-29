@@ -10,16 +10,16 @@ viewsvn () {
 	elif [ $# -eq 1 ]; then
 		f="$1"
 		[ -d "$f" ] && [ -f "$f/.svn/entries" ] && f="$f/."
-		if ! [ -f "`dirname "$f"`/.svn/entries" ]; then
+		if ! [ -f "$(dirname "$f")/.svn/entries" ]; then
 			echo "$f - Not in an SVN repository." > /dev/stderr
 		else
 			open "$( \
-				grep svn+ssh `dirname $f`/.svn/entries \
+				grep svn+ssh $(dirname $f)/.svn/entries \
 					| head -n1 \
 					| sed \
 						-e 's/svn\+ssh/http/g' \
 						-e 's/svn\.corp\.yahoo\.com\/yahoo/svn.corp.yahoo.com\/view\/yahoo/g' \
-			)/`basename $f`"
+			)/$(basename $f)"
 		fi
 	else
 		RET=0
@@ -31,13 +31,13 @@ viewsvn () {
 }
 
 viewcvs () {
-	wd=`pwd`
+	wd=$PWD
 	for x in $@; do
 		x="$wd/$x"
 		# argument should be a file or folder.
 		if [ -f "$x" ]; then
-			folder=`dirname "$x"`
-			thefile=`basename "$x"`
+			folder=$(dirname "$x")
+			thefile=$(basename "$x")
 		elif [ -d "$x" ]; then
 			folder="$x"
 			thefile=""
@@ -52,7 +52,7 @@ viewcvs () {
 			#echo "not in a cvs folder"
 			return
 		fi
-		repo=`cat "$folder/CVS/Repository"`
+		repo=$(cat "$folder/CVS/Repository")
 	
 		open http://vault.yahoo.com/viewcvs/$repo/$thefile
 	done
@@ -76,13 +76,13 @@ cvsdiff () {
 
 	#echo "newfile $NEWFILE"
 	#echo "oldfile $OLDFILE"
-	#echo "pwd `pwd`"
+	#echo "pwd $(pwd)"
 
-	opendiff "$OLDFILE" "$NEWFILE" -merge "`pwd`/$NEWFILE"
+	opendiff "$OLDFILE" "$NEWFILE" -merge "$PWD/$NEWFILE"
 }
 
 
-unison_bin="`which unison`"
+unison_bin="$(which unison)"
 unison_prof="yap"
 unison () {
 	$unison_bin -logfile /dev/null -ui text -times -ignore 'Regex .*docs/2008[0-9]{4}/.*' -ignore 'Regex .*/(FreeBSD|rhel)\.[0-9]+\.[0-9]+\.package.*' -ignore 'Regex .*\.svn' -ignore 'Regex .*/svn-commit*.tmp' -ignore 'Regex .*/\.DS_Store' $@ $unison_prof
@@ -111,23 +111,23 @@ unisonquiet () {
 }
 unisonlisten () {
 	title unison
-	pid=`pid unison`
+	pid=$(pid unison)
 	if [ "$pid" == "" ]; then
 		unisonquiet
 	else
-		echo "[$pid] (already running)"
+		echo [$pid] (already running)
 	fi
 	tail -f ~/.unisonlog
 }
 unisonkill () {
 	killall $1 unison
-	for id in `pid unison`; do
+	for id in $(pid unison); do
 		kill $1 $id
 	done
 }
 alias uk=unisonkill
 
-[ `basename "$EDITOR"` == "mate_wait" ] && export LESSEDIT='mate_wait -l %lm %f'
+[ $(basename "$EDITOR") == "mate_wait" ] && export LESSEDIT='mate_wait -l %lm %f'
 
 export UNISONLOCALHOSTNAME=sistertrain-lm.corp.yahoo.com
 
