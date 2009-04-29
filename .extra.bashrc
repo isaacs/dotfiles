@@ -554,6 +554,9 @@ if [ $has_yinst == 1 ]; then
 	yg () {
 		yinst ls | $grep "$@"
 	}
+	ysg () {
+		yinst set | $grep "$@"
+	}
 elif [ -f "$(which port 2>/dev/null)" ]; then
 	alias inst="sudo port install"
 	alias yl="port list installed"
