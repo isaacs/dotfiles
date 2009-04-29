@@ -139,4 +139,43 @@ ahyaneupdate () {
 
 alias photoshop='open -a Adobe\ Photoshop\ CS3'
 
+update_webkit () {
+	local rev=$( cat /Applications/WebKit.app/Contents/Resources/VERSION )
+	local url=$( curl --silent http://nightly.webkit.org/builds/trunk/mac/latest | egrep "http://.*WebKit-SVN-r[0-9]+.dmg" -o | head -n 1 )
+	local latest=$( echo $url | egrep '[0-9]{4,}' -o )
+	if [ "$latest" != "" ]; then
+		echo "Couldn't get latest WebKit revision" > /dev/stderr
+		return 1
+	fi
+	if [ "$latest" == "$rev" ]; then
+		echo "WebKit already up to date [$rev]" > /dev/stderr
+		return 0
+	fi
+	echo "Updating WebKit from $rev to $latest..." > /dev/stderr
+	
+	curl -sL $url > /tmp/latest-webkit-svn.dmg
+	if ! [ -f /tmp/latest-webkit-svn.dmg ]; then
+		echo "Download from $url failed" > /dev/stderr
+		return 1
+	fi
+	
+	hdiutil attach /tmp/latest-webkit-svn.dmg -mountpoint /tmp/latest-webkit-svn -quiet
+	
+	killall -QUIT WebKit
+	killall -QUIT DroseraLauncher
+
+	rm -rf /Applications/Drosera.app /Applications/WebKit.app 2>/dev/null
+	
+	cp -R /tmp/latest-webkit-svn/Drosera.app /Applications/Drosera.app
+	cp -R /tmp/latest-webkit-svn/WebKit.app /Applications/WebKit.app
+
+	hdiutil detach /tmp/latest-webkit-svn -quiet
+	rm /tmp/latest-webkit-svn.dmg 2>/dev/null
+
+	echo "WebKit updated to $latest."
+	return 0
+}
+
 export QTDIR=/opt/local/lib/qt3
+
+
