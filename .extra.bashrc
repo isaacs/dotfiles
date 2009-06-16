@@ -218,7 +218,7 @@ shebang () {
 	[ "$3" != "" ] && prog="$prog $3"
 	if ! [ "$(head -n 1 "$1")" == "$prog" ]; then
 		tmp=$(mktemp shebang.XXXX)
-		cat <(echo $prog) $1 > $tmp && cat $tmp > $1 && rm $tmp && return 0 || \
+		( echo $prog; cat $1 ) > $tmp && cat $tmp > $1 && rm $tmp && return 0 || \
 			echo "Something fishy happened!" && return 1
 	fi
 	return 0
@@ -645,7 +645,7 @@ pulltrunk () {
 __svn_ps1 () {
 	[ -d $PWD/.svn ] return
 	info="$(
-		svn info | egrep -o '(tags|branches)/[^/]+|trunk' | egrep -o '[^/]+$'
+		svn info | egrep -o '(tags|branches)/[^/]+|trunk' | head -n1 | egrep -o '[^/]+$'
 	)"
 	! [ -n "$info" ] && return
 	[ -n "$1" ] && format="$1" || format=" %s "
@@ -752,10 +752,12 @@ getip () {
 
 ips () {
 	interface=""
-	for i in $( ifconfig | egrep -o '(^(vmnet|en|eth)[0-9]:|inet ([0-9]+\.){3}[0-9]+)' | egrep -o '(^(vmnet|en)[0-9]:|([0-9]+\.){3}[0-9]+)' | grep -v 127.0.0.1 ); do
+	types='vmnet|en|eth'
+	for i in $( ifconfig | egrep -o '(^('$types')[0-9]|inet (addr:)?([0-9]+\.){3}[0-9]+)' | egrep -o '(^('$types')[0-9]|([0-9]+\.){3}[0-9]+)' | grep -v 127.0.0.1 ); do
 		# echo "i=[$i]"
-		if [ ${i:(${#i}-1)} == ":" ]; then
-			interface=$i
+		# if [ ${i:(${#i}-1)} == ":" ]; then
+		if ! [ "$( echo $i | perl -pi -e 's/([0-9]+\.){3}[0-9]+//g' )" == "" ]; then
+			interface="$i":
 		else
 			echo $interface $i
 		fi
@@ -836,6 +838,7 @@ pid () {
 alias v="ssh visitbread.corp.yahoo.com"
 alias vm="ssh visitbread-vm0.corp.yahoo.com"
 alias fh="ssh foohack.com"
+alias p="ssh isaacs.xen.prgmr.com"
 alias st="ssh sistertrain.com"
 
 
@@ -849,6 +852,10 @@ agent () {
 	ssh-add
 }
 
+vazu () {
+	rsync -vazuR --stats --no-implied-dirs --delete --exclude=".*\.svn.*" "$@"
+}
+
 fhcp () {
 	p="$PWD"
 	for i in "$@"; do
@@ -857,7 +864,7 @@ fhcp () {
 			siteroot=~/Sites/
 			rdir=${dir##$siteroot}
 			echo "Sending $i"
-			rsync -vazuR --stats --no-implied-dirs --delete --exclude=".*\.svn.*" $i foohack.com:~/apache/$rdir
+			vazu $i foohack.com:~/apache/$rdir
 		fi
 	done
 }
