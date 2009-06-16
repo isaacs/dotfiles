@@ -10,6 +10,9 @@ nodump
 # Print statistics when creating or deleting archives
 print-stats
 
+# make numbers more meaningful, if slightly less precise
+# humanize-numbers
+
 # things that don't really need to be backed up, and are huge.
 exclude */TV\ Shows/*
 exclude */Movies/*
