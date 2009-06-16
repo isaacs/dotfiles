@@ -8,7 +8,7 @@ for i in .*; do
 				exit 1
 			fi
 		fi
-		if ln -s `pwd`/$i ~/$i; then
+		if ln -s $(pwd)/$i ~/$i; then
 			echo "Linked: $i" > /dev/stderr
 		else
 			echo "Failed on $i" > /dev/stderr

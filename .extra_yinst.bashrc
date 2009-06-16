@@ -18,7 +18,7 @@ portshift () {
 relink () {
 	br="$1"
 	[ "$br" != "" ] && br="-br $br"
-	if ! [ -f "`which yinst_create`" ]; then
+	if ! [ -f "$(which yinst_create)" ]; then
 		yinst i yinst_create
 	fi
 	rm *.tgz &>/dev/null
@@ -27,7 +27,7 @@ relink () {
 }
 
 rebuild () {
-	if ! [ -f "`which yinst_create`" ]; then
+	if ! [ -f "$(which yinst_create)" ]; then
 		yinst i yinst_create
 	fi
 	rm *.tgz
@@ -36,10 +36,10 @@ rebuild () {
 }
 
 dist_nightly () {
-	if ! [ -f "`which yinst_create`" ]; then
+	if ! [ -f "$(which yinst_create)" ]; then
 		yinst i yinst_create
 	fi
-	if ! [ -f "`which dist_install`" ]; then
+	if ! [ -f "$(which dist_install)" ]; then
 		yinst i dist_tools
 	fi
 	rm *.tgz
