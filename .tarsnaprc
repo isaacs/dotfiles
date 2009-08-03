@@ -35,3 +35,9 @@ exclude */.dotfile_backup*
 exclude */Caches/*
 exclude */adium/build*
 exclude */Dropbox/lomwc*
+exclude */Library/Mail/IMAP-isaacs@imap.corp.yahoo.com/INBOX/lists*
+exclude */Library/Mail/IMAP-isaacs@imap.corp.yahoo.com/INBOX/random*
+exclude */Library/Mail/IMAP-isaacs@imap.corp.yahoo.com/INBOX/Junk*
+exclude */Library/Mail/IMAP-isaacs@imap.corp.yahoo.com/INBOX/Deleted*
+exclude */Library/Mail/IMAP-isaacs@imap.corp.yahoo.com/INBOX/random*
+exclude */Library/Mail/IMAP-isaacs@imap.corp.yahoo.com/INBOX/Announce*
