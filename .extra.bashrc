@@ -41,7 +41,7 @@ if ! [ -f "$HOME" ]; then
 	export HOME="$(echo ~)"
 fi
 
-path=$HOME/bin:$HOME/scripts:/home/y/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include
+path=$HOME/bin:$HOME/scripts:/home/y/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:$HOME/dev/jack/narwhal/bin:$HOME/dev/jack/jack/bin:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/
 ! [ -d ~/bin ] && mkdir ~/bin
 path_elements="${path//:/ }"
 path=""
@@ -50,6 +50,8 @@ for i in $path_elements; do
 done
 export PATH=$(path=$(echo $path); echo ${path// /:})
 unset path
+
+export CLASSPATH=./:~/dev/rhino/build/classes:~/dev/fcgi/fcgi-2.4.0/java
 
 # Use UTF-8, and throw errors in PHP and Perl if it's not available.
 # Note: this is VERY obnoxious if UTF8 is not available!
@@ -190,8 +192,7 @@ _set_editor () {
 # my list of editors, by preference.
 _set_editor mate vim vi pico ed
 unset _set_editor
-alias k7ed="echo '' | $EDITOR | k7"
-alias k7sh="rlwrap $HOME/dev/k7/applications/shell/shell.js"
+alias js="rlwrap narwhal"
 
 # shebang <file> <program> [<args>]
 shebang () {
@@ -226,7 +227,7 @@ shebang () {
 
 # Probably a better way to do this, but whatevs.
 rand () {
-	echo $(php -r 'echo rand();')
+	echo $(php -r 'echo mt_rand();')
 }
 
 pickrand () {
@@ -486,38 +487,25 @@ alias tree="tree -CAFa -I 'CVS|rhel.*.*.package|.svn|.git' --dirsfirst"
 if [ "$has_yinst" == 1 ]; then
 	# echo "has yinst = $has_yinst"
 	yapr="yinst restart yapache"
+elif inpath lighttpd.wrapper; then
+	yapr="sudo lighttpd.wrapper restart"
+elif [ -f /etc/init.d/lighttpd ]; then
+	yapr="sudo /etc/init.d/lighttpd reload"
 elif inpath apache2ctl; then
 	yapr="sudo apache2ctl graceful"
 elif inpath apachectl; then
 	yapr="sudo apachectl graceful"
 else
-	# well, just try to HUP it.  Note: this is odd.
-	yapr="sudo killall -HUP httpd"
+	# very strange!
+	yapr="echo Looks like lighttpd and apache are not installed."
 fi
 alias yapr="$yapr"
 
 
-__yapl () {
-	if [ ${#@} -gt 0 ]; then
-		site="$1"
-	else
-		site="foohack.com"
-	fi
-	tail -f ~/apache/log/$site/error_log
-}
-__yaprl () {
-	yapr
-	__yapl "$1"
-}
-if [ -d "$HOME/apache/log/" ]; then
-	alias yapl="__yapl"
-	alias yaprl="__yaprl"
-else
-	apache_log="$(choose_first /home/y/logs/yapache/php-error /home/y/logs/yapache/error /home/y/logs/yapache/error_log /home/y/logs/yapache/us/error_log /home/y/logs/yapache/us/error /opt/local/apache2/logs/error_log /var/log/httpd/error_log /var/log/httpd/error)"
-	yapl="tail -f $apache_log | egrep -v '^E|udbClient'"
-	alias yaprl="$yapr;$yapl"
-	alias yapl="$yapl"
-fi
+error_log="$(choose_first /opt/local/var/log/lighttpd/error.log /home/y/logs/yapache/php-error /home/y/logs/yapache/error /home/y/logs/yapache/error_log /home/y/logs/yapache/us/error_log /home/y/logs/yapache/us/error /opt/local/apache2/logs/error_log /var/log/httpd/error_log /var/log/httpd/error)"
+yapl="tail -f $error_log | egrep -v '^E|udbClient'"
+alias yaprl="$yapr;$yapl"
+alias yapl="$yapl"
 
 prof () {
 	. ~/.extra.bashrc
@@ -678,67 +666,6 @@ dict () {
 	curl -s dict://dict.org/d:$1 | perl -ne 's/\r//; last if /^\.$/; print if /^151/../^250/' | more
 }
 
-# finds and deletes .DS_Store, *.bak, and .# files.
-# Doesn't handle files with spaces in the name, but in that case, probably won't cause problems, just won't work.
-cvscleanup () {
-	curdir="."
-	files=""
-	COUNTER=0
-
-	for f in [$(ls -RA | egrep "(^\.|\.bak$)")];
-	do
-		if [ ${f:0:1} = "[" ]; then
-			f=${f:1}
-		fi
-		if [ ${f:(${#f}-1)} = "]" ]; then
-			f=${f:0:(${#f}-1)}
-		fi
-		if [ ${f:0:1} = "." ]; then
-			if [ "$f" != ".cvsignore" ] && [ "$f" != ".crontab" ]; then
-				if [ -d ${f:0:(${#f}-1)} ]; then
-					curdir=${f:0:(${#f}-1)}
-				elif [ -f "$curdir/$f" ]; then
-					files="$files $curdir/$f "
-					let COUNTER=COUNTER+1 
-					echo "$curdir/$f "
-				elif [ -f "$curdir/${f:1}" ]; then
-					files="$files $curdir/${f:1} "
-					let COUNTER=COUNTER+1 
-					echo "$curdir/${f:1}"
-				fi
-			fi
-		elif [ ${f:(${#f}-4)} = ".bak" ]; then
-			if [ -d ${f:0:(${#f}-1)} ]; then
-				curdir=${f:0:(${#f}-1)}
-			elif [ -f "$curdir/$f" ]; then
-				files="$files $curdir/$f "
-				let COUNTER=COUNTER+1 
-				echo "$curdir/$f "
-			elif [ -f "$curdir/${f:1}" ]; then
-				files="$files $curdir/${f:1} "
-				let COUNTER=COUNTER+1 
-				echo "$curdir/${f:1}"
-			fi
-		fi
-	done
-	
-	if [ "$COUNTER" != "0" ]; then
-		echo ""
-		echo "OK to delete $COUNTER file(s)? (enter Y to delete)"
-		read doit
-		if [ "$doit" = "Y" ]; then
-			$(rm $files)
-			echo "done"
-		else
-			echo "cancelled"
-		fi
-	else
-		echo ""
-		echo "No backup files found."
-	fi
-}
-
-
 #get the ip address of a host easily.
 getip () {
 	for each in "$@"; do
@@ -856,34 +783,34 @@ vazu () {
 	rsync -vazuR --stats --no-implied-dirs --delete --exclude=".*\.svn.*" "$@"
 }
 
-fhcp () {
-	p="$PWD"
-	for i in "$@"; do
-		if [ -d "$p/$i" ] || [ -f "$p/$i" ]; then
-			dir=$(dirname "$p/$i")
-			siteroot=~/Sites/
-			rdir=${dir##$siteroot}
-			echo "Sending $i"
-			vazu $i foohack.com:~/apache/$rdir
-		fi
-	done
-}
-
-fhfetch () {
-	p="$PWD"
-	for i in "$@"; do
-		dir=$(dirname "$p/$i")
-		siteroot=~/Sites
-		# siteroot=$siteroot
-		# dir=$dir
-		rdir=${dir##$siteroot}
-		# echo rdir=$rdir
-		file=$(basename "$i")
-		# file=$file
-		rsync -vazu --no-implied-dirs --stats --exclude=".*\.svn.*" foohack.com:~/apache$rdir/$file $dir/
-		#scp -r foohack.com:~/apache$rdir/$file $dir
-	done
-}
+# fhcp () {
+# 	p="$PWD"
+# 	for i in "$@"; do
+# 		if [ -d "$p/$i" ] || [ -f "$p/$i" ]; then
+# 			dir=$(dirname "$p/$i")
+# 			siteroot=~/Sites/
+# 			rdir=${dir##$siteroot}
+# 			echo "Sending $i"
+# 			vazu $i foohack.com:~/apache/$rdir
+# 		fi
+# 	done
+# }
+# 
+# fhfetch () {
+# 	p="$PWD"
+# 	for i in "$@"; do
+# 		dir=$(dirname "$p/$i")
+# 		siteroot=~/Sites
+# 		# siteroot=$siteroot
+# 		# dir=$dir
+# 		rdir=${dir##$siteroot}
+# 		# echo rdir=$rdir
+# 		file=$(basename "$i")
+# 		# file=$file
+# 		rsync -vazu --no-implied-dirs --stats --exclude=".*\.svn.*" foohack.com:~/apache$rdir/$file $dir/
+# 		#scp -r foohack.com:~/apache$rdir/$file $dir
+# 	done
+# }
 
 
 repeat () {
@@ -931,20 +858,6 @@ cm () {
 }
 cr () {
 	cm "$1" && ./$(stripc "$1")
-}
-
-# weekly status texts for team updates.
-weekly () {
-	$EDITOR ~/weeklystatus.txt
-	# change the first line to reflect last updated status.
-	fl=$( echo \# $( finger $(whoami) | egrep -o 'Name: .*' | egrep -o '[^:\ ]+' | grep -v 'Name' ) $(date +%Y-%m-%d) )
-	rest="$( l=$(cat ~/weeklystatus.txt | wc -l); let 'l -= 1'; tail -n $l ~/weeklystatus.txt )"
-	cat <<STATUS >~/weeklystatus.txt
-$fl
-$rest
-STATUS
-	rsync -z --timeout=5 ~/weeklystatus.txt visitbread:~
-	cat ~/weeklystatus.txt
 }
 
 # tarsnap wrappers.
