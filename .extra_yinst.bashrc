@@ -15,6 +15,10 @@ portshift () {
 	yinst set $s
 }
 
+ys () {
+	yinst set "$@" | perl -pi -e 's/^yinst: //g;s/: /=/g'
+}
+
 relink () {
 	br="$1"
 	[ "$br" != "" ] && br="-br $br"
