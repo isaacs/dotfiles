@@ -8,6 +8,7 @@
 	co = checkout
 	df = diff
 	lg = log -p
+	pu = !"git fetch origin -v; git fetch upstream -v; git merge upstream/master"
 [color]
 	branch = auto
 	diff = auto
