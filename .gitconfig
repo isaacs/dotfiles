@@ -1,14 +1,12 @@
-[user]
-	email = i@foohack.com
-	name = isaacs
 [alias]
 	ci = commit
 	st = status
 	br = branch
 	co = checkout
 	df = diff
-	lg = log -p
-	pu = !"git fetch origin -v; git fetch upstream -v; git merge upstream/master"
+	lg = log --graph
+	lo = log --pretty=oneline
+	pu = !"git fetch origin; git fetch upstream; git merge upstream/master"
 [color]
 	branch = auto
 	diff = auto
