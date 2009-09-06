@@ -17,7 +17,7 @@ unisondev () {
 	unison -terse -repeat 1 -batch
 }
 unisonpush () {
-	unison -force /Users/isaacs/dev/yap/ -batch -terse
+	unison -force $HOME/dev/yap/ -batch -terse
 }
 unisonstart () {
 	echo "pushing..."
