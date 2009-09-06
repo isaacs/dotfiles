@@ -3,41 +3,16 @@
 
 alias compressmail='sqlite3 ~/Library/Mail/Envelope\ Index vacuum index'
 
-viewsvn () {
-	if [ $# -lt 1 ]; then
-		viewsvn .
-		return $?
-	elif [ $# -eq 1 ]; then
-		f="$1"
-		[ -d "$f" ] && [ -f "$f/.svn/entries" ] && f="$f/."
-		if ! [ -f "$(dirname "$f")/.svn/entries" ]; then
-			echo "$f - Not in an SVN repository." > /dev/stderr
-		else
-			open "$( \
-				grep svn+ssh $(dirname $f)/.svn/entries \
-					| head -n1 \
-					| sed \
-						-e 's/svn\+ssh/http/g' \
-						-e 's/svn\.corp\.yahoo\.com\/yahoo/svn.corp.yahoo.com\/view\/yahoo/g' \
-			)/$(basename $f)"
-		fi
-	else
-		RET=0
-		for i in $@; do
-			viewsvn $i || let 'RET += 1'
-		done
-		return $RET
-	fi
-}
-
-unison_bin="$(which unison)"
-unison_prof="yap"
 unison () {
-	$unison_bin -logfile /dev/null -ui text -times -ignore 'Regex .*docs/2008[0-9]{4}/.*' -ignore 'Regex .*/(FreeBSD|rhel)\.[0-9]+\.[0-9]+\.package.*' -ignore 'Regex .*\.svn' -ignore 'Regex .*/svn-commit*.tmp' -ignore 'Regex .*/\.DS_Store' $@ $unison_prof
+	local unison_prof="yap"
+	local unison_bin="$(which unison)"
+	$unison_bin -logfile /dev/null -ui text -times \
+		-ignore 'Regex .*docs/2008[0-9]{4}/.*' \
+		-ignore 'Regex .*/(FreeBSD|rhel)\.[0-9]+\.[0-9]+\.package.*' \
+		-ignore 'Regex .*\.svn' \
+		-ignore 'Regex .*/svn-commit*.tmp' \
+		-ignore 'Regex .*/\.DS_Store' $@ $unison_prof
 }
-# unison () {
-# 	$unison_bin -ui text -logfile /dev/stdout -ignore 'Regex .*docs/2008[0-9]{4}/.*' -ignore 'Regex .*/(FreeBSD|rhel)\.[0-9]+\.[0-9]+\.package.*' -ignore 'Regex .*/\.DS_Store' -times $@ $unison_prof
-# }
 unisondev () {
 	unison -terse -repeat 1 -batch
 }
@@ -59,11 +34,11 @@ unisonquiet () {
 }
 unisonlisten () {
 	title unison
-	pid=$(pid unison)
+	local pid=$(pid unison)
 	if [ "$pid" == "" ]; then
 		unisonquiet
 	else
-		echo [$pid]" (already running)"
+		echo "[$pid] (already running)"
 	fi
 	tail -f ~/.unisonlog
 }
@@ -79,7 +54,11 @@ alias uk=unisonkill
 
 export UNISONLOCALHOSTNAME=sistertrain-lm.corp.yahoo.com
 
-alias sethost="sudo hostname sistertrain-lm; sudo scutil --set LocalHostName sistertrain-lm; sudo scutil --set HostName sistertrain-lm"
+sethost () {
+	sudo hostname sistertrain-lm
+	sudo scutil --set LocalHostName sistertrain-lm
+	sudo scutil --set HostName sistertrain-lm
+}
 
 ahyaneupdate () {
 	fh '. ~/.extra.bashrc; cd dev/ahyane; agent; git fetch; git rebase origin/master; bin/build.php'

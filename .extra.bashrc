@@ -41,17 +41,43 @@ if ! [ -f "$HOME" ]; then
 	export HOME="$(echo ~)"
 fi
 
-path=$HOME/bin:$HOME/scripts:/home/y/bin:$HOME/dev/serverjs/narwhal/bin:$HOME/dev/serverjs/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/
-! [ -d ~/bin ] && mkdir ~/bin
-path_elements="${path//:/ }"
-path=""
-for i in $path_elements; do
-	[ -d $i ] && path="$path$i "
-done
-export PATH=$(path=$(echo $path); echo ${path// /:})
-unset path
+# try to avoid polluting the global namespace with lots of garbage.
+# the *right* way to do this is to have everything inside functions,
+# and use the "local" keyword.  But that would take some work to
+# reorganize all my old messes.  So this is what I've got for now.
+__garbage_list=""
+__garbage () {
+	local i
+	if [ $# -eq 0 ]; then
+		for i in ${__garbage_list}; do
+			unset $i
+		done
+		unset __garbage_list
+	else
+		for i in "$@"; do
+			__garbage_list="${__garbage_list} $i"
+		done
+	fi
+}
 
-export CLASSPATH=./:~/dev/rhino/build/classes:~/dev/fcgi/fcgi-2.4.0/java
+__garbage __set_path
+__set_path () {
+	local var="$1"
+	local path="$2"
+	
+	! [ -d ~/bin ] && mkdir ~/bin
+	local path_elements="${path//:/ }"
+	path=""
+	local i
+	for i in $path_elements; do
+		[ -d $i ] && path="$path$i "
+	done
+	export $var=$(path=$(echo $path); echo ${path// /:})
+}
+__set_path "PATH" "$HOME/bin:$HOME/scripts:/home/y/bin:$HOME/dev/serverjs/narwhal/bin:$HOME/dev/serverjs/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/"
+
+__set_path CLASSPATH "./:~/dev/rhino/build/classes:~/dev/fcgi/fcgi-2.4.0/java"
+__set_path CDPATH ".:..:$HOME/dev:$HOME"
 
 # Use UTF-8, and throw errors in PHP and Perl if it's not available.
 # Note: this is VERY obnoxious if UTF8 is not available!
@@ -70,7 +96,6 @@ shopt -s histappend
 # don't be so prickly about spelling
 shopt -s cdspell
 
-export CDPATH=.:..:$HOME/dev:$HOME
 
 alias ..="cd .."
 
@@ -129,6 +154,7 @@ quiet () {
 #do something to all the things on standard input.
 # echo 1 2 3 | foreach echo foo is like calling echo foo 1; echo foo 2; echo foo 3;
 foreach () {
+	local $i
 	for i in $(cat /dev/stdin); do
 		"$@" $i;
 	done
@@ -137,6 +163,8 @@ foreach () {
 # test javascript files for syntax errors.
 if inpath yuicompressor; then
 	testjs () {
+		local i
+		local err
 		for i in $(find . -name "*.js"); do
 			err="$(yuicompressor -o /dev/null $i 2>/dev/stdout)"
 			if [ "$err" != "" ]; then
@@ -156,7 +184,6 @@ elif [ "$(grep --help | grep colour)" != "" ]; then
 fi
 alias grep="$grep"
 
-
 # substitute "this" for "that" if "this" exists and is in the path.
 substitute () {
 	! [ $# -eq 2 ] && echo "usage: substitute <desired> <orig>" && return 1
@@ -169,14 +196,13 @@ substitute yscp scp
 export SVN_RSH=$(choose_first yssh ssh)
 export RSYNC_RSH=$(choose_first yssh ssh)
 
-[ -d ~/dev/main/yahoo ] && export SRCTOP=~/dev/main/yahoo 
-
+__garbage has_yinst
 has_yinst=0
 inpath yinst && has_yinst=1
 
 # useful commands:
-_set_editor () {
-	edit_cmd="$( choose_first "$@" )"
+__set_editor () {
+	local edit_cmd="$( choose_first "$@" )"
 	if [ -f "$edit_cmd" ]; then
 		if [ -f "${edit_cmd}_wait" ]; then
 			export EDITOR="${edit_cmd}_wait"
@@ -188,13 +214,12 @@ _set_editor () {
 	alias sued="sudo $edit_cmd"
 }
 # my list of editors, by preference.
-_set_editor mate vim vi pico ed
-unset _set_editor
-alias js="rlwrap narwhal"
+__set_editor mate vim vi pico ed
+__garbage __set_editor
 
 # shebang <file> <program> [<args>]
 shebang () {
-	sb="shebang"
+	local sb="shebang"
 	if [ $# -lt 2 ]; then
 		echo "usage: $sb <file> <program> [<arg string>]"
 		return 1
@@ -206,7 +231,7 @@ shebang () {
 		echo "$sb: $1 is not writable."
 		return 1
 	fi
-	prog="$2"
+	local prog="$2"
 	! [ -f "$prog" ] && prog="$(which "$prog" 2>/dev/null)"
 	if ! [ -x "$prog" ]; then
 		echo "$sb: $2 is not executable, or not in path."
@@ -216,7 +241,7 @@ shebang () {
 	prog="#!$prog"
 	[ "$3" != "" ] && prog="$prog $3"
 	if ! [ "$(head -n 1 "$1")" == "$prog" ]; then
-		tmp=$(mktemp shebang.XXXX)
+		local tmp=$(mktemp shebang.XXXX)
 		( echo $prog; cat $1 ) > $tmp && cat $tmp > $1 && rm $tmp && return 0 || \
 			echo "Something fishy happened!" && return 1
 	fi
@@ -229,18 +254,17 @@ rand () {
 }
 
 pickrand () {
-	cnt=0
+	local cnt=0
+	local tst="-d"
 	if [ $# == 1 ]; then
-		tst=$1
-	else
-		tst="-d"
+		tst="$1"
 	fi
 	for i in *; do
 		[ $tst "$i" ] && let 'cnt += 1'
 	done
-	r=$(rand)
-	p=0
 	[ $cnt -eq 0 ] && return 1
+	local r=$(rand)
+	local p=0
 	let 'p = r % cnt'
 	# echo "[$cnt $r --- $p]"
 	cnt=0
@@ -448,20 +472,22 @@ fi
 alias mvsafe="mv -i"
 
 lscolor=""
+__garbage lscolor
 if [ "$TERM" != "dumb" ] && [ -f "$(which dircolors 2>/dev/null)" ]; then
 	eval "$(dircolors -b)"
-	lscolor=" --color=auto"
+	local lscolor=" --color=auto"
 	#alias dir='ls --color=auto --format=vertical'
 	#alias vdir='ls --color=auto --format=long'
 fi
 ls_cmd="ls$lscolor"
+__garbage ls_cmd
 alias ls="$ls_cmd"
 alias la="$ls_cmd -laF"
 alias lal="$ls_cmd -laFL"
 alias ll="$ls_cmd -lF"
 alias ag="alias | $grep"
 fn () {
-	func=$(declare -f "$1")
+	local func=$(declare -f "$1")
 	[ -z "$func" ] && echo "$1 is not a function" > /dev/stderr && return 1
 	echo $func && return 0
 }
@@ -473,17 +499,17 @@ alias lsdevs="sudo lsof | $grep ' /dev'"
 
 
 # domain sniffing
-wh () {
+wi () {
 	whois $1 | egrep -i '(registrar:|no match|record expires on|holder:)'
 }
 
 
 
 #make tree a little cooler looking.
-alias tree="tree -CAFa -I 'rhel.*.*.package|.svn|.git' --dirsfirst"
+alias tree="tree -CAFa -I 'rhel.*.*.package|.git' --dirsfirst"
 
-if [ "$has_yinst" == 1 ]; then
-	# echo "has yinst = $has_yinst"
+__garbage yapr
+if [ $has_yinst -eq 1 ]; then
 	yapr="yinst restart yapache"
 elif inpath lighttpd.wrapper; then
 	yapr="sudo lighttpd.wrapper restart"
@@ -499,7 +525,7 @@ else
 fi
 alias yapr="$yapr"
 
-
+__garbage error_log
 error_log="$(choose_first /opt/local/var/log/lighttpd/error.log /home/y/logs/yapache/php-error /home/y/logs/yapache/error /home/y/logs/yapache/error_log /home/y/logs/yapache/us/error_log /home/y/logs/yapache/us/error /opt/local/apache2/logs/error_log /var/log/httpd/error_log /var/log/httpd/error)"
 yapl="tail -f $error_log | egrep -v '^E|udbClient'"
 alias yaprl="$yapr;$yapl"
@@ -518,8 +544,8 @@ editprof () {
 }
 pushprof () {
 	[ "$1" == "" ] && echo "no hostname provided" && return 1
-	failures=0
-	rsync="rsync --copy-links -v -a -z"
+	local failures=0
+	local rsync="rsync --copy-links -v -a -z"
 	for each in "$@"; do
 		if [ "$each" != "" ]; then
 			if $rsync ~/.{inputrc,tarsnaprc,profile,extra,git}* $each:~ && \
@@ -534,7 +560,7 @@ pushprof () {
 	return $failures
 }
 
-if [ $has_yinst == 1 ]; then
+if [ $has_yinst -eq 1 ]; then
 	alias inst="yinst install"
 	alias yl="yinst ls"
 	yg () {
@@ -543,14 +569,14 @@ if [ $has_yinst == 1 ]; then
 	ysg () {
 		yinst set | $grep "$@"
 	}
-elif [ -f "$(which port 2>/dev/null)" ]; then
+elif inpath port; then
 	alias inst="sudo port install"
 	alias yl="port list installed"
 	yg () {
 		port list '*'"$@"'*'
 	}
 	alias upup="sudo port sync && sudo port upgrade installed"
-elif [ -f "$(which apt-get 2>/dev/null)" ]; then
+elif inpath apt-get; then
 	alias inst="sudo apt-get install"
 	alias yl="dpkg --list | egrep '^ii'"
 	yg () {
@@ -558,33 +584,6 @@ elif [ -f "$(which apt-get 2>/dev/null)" ]; then
 	}
 	alias upup="sudo apt-get update && sudo apt-get upgrade"
 fi
-
-alias sci="svn ci"
-alias sg="svn up"
-alias sq="svn status | egrep '^\?' | egrep -o '[^\?\ ].*$'"
-alias sm="svn status -q"
-alias svncleanup="sudo find . -name '.svn' -exec rm -rf {} \; ;"
-pulltrunk () {
-	if ! [ $(svn status -q | wc -l) -eq 0 ]; then
-		echo "Unclean environment. Cannot safely pull from trunk."
-		return 1
-	fi
-	trunk=$( svn info | grep '^URL:' | awk '{print $2}' | perl -pi -e 's/(branches|tags)\/[^\/]+/trunk/' )
-	svn merge $trunk && svn up && svn ci -m "Merge from trunk"
-}
-__svn_ps1 () {
-	[ -d $PWD/.svn ] return
-	info="$(
-		svn info | egrep -o '(tags|branches)/[^/]+|trunk' | head -n1 | egrep -o '[^/]+$'
-	)"
-	! [ -n "$info" ] && return
-	[ -n "$1" ] && format="$1" || format=" %s "
-	printf "$format" "$info"
-}
-# recursive grep with ignores.
-gri () {
-	grep -rs "$@" . | egrep -v '.svn/'
-}
 
 alias gci="git commit"
 alias gpu="git pull"
@@ -609,8 +608,6 @@ ypu () {
 	done
 }
 alias gps="git push --all"
-# for yui...
-# alias pu="git fetch origin -v; git fetch upstream -v; git merge upstream/master" 
 
 gpm () {
 	git pull $1 master
@@ -632,12 +629,17 @@ getip () {
 	done
 }
 
+# Show the IP addresses of this machine, with each interface that the address is on.
 ips () {
-	interface=""
-	types='vmnet|en|eth'
-	for i in $( ifconfig | egrep -o '(^('$types')[0-9]|inet (addr:)?([0-9]+\.){3}[0-9]+)' | egrep -o '(^('$types')[0-9]|([0-9]+\.){3}[0-9]+)' | grep -v 127.0.0.1 ); do
-		# echo "i=[$i]"
-		# if [ ${i:(${#i}-1)} == ":" ]; then
+	local interface=""
+	local types='vmnet|en|eth'
+	local i
+	for i in $(
+		ifconfig \
+		| egrep -o '(^('$types')[0-9]|inet (addr:)?([0-9]+\.){3}[0-9]+)' \
+		| egrep -o '(^('$types')[0-9]|([0-9]+\.){3}[0-9]+)' \
+		| grep -v 127.0.0.1
+	); do
 		if ! [ "$( echo $i | perl -pi -e 's/([0-9]+\.){3}[0-9]+//g' )" == "" ]; then
 			interface="$i":
 		else
@@ -646,10 +648,16 @@ ips () {
 	done
 }
 
+# Like the ips function, but for mac addrs.
 macs () {
-	interface=""
-	for i in $( ifconfig | egrep -o '(^(vmnet|en)[0-9]:|ether ([0-9a-f]{2}:){5}[0-9a-f]{2})' | egrep -o '(^(vmnet|en)[0-9]:|([0-9a-f]{2}:){5}[0-9a-f]{2})' ); do
-		# echo "i=[$i]"
+	local interface=""
+	local i
+	local types='vmnet|en|eth'
+	for i in $(
+		ifconfig \
+		| egrep -o '(^('$types')[0-9]:|ether ([0-9a-f]{2}:){5}[0-9a-f]{2})' \
+		| egrep -o '(^('$types')[0-9]:|([0-9a-f]{2}:){5}[0-9a-f]{2})'
+	); do
 		if [ ${i:(${#i}-1)} == ":" ]; then
 			interface=$i
 		else
@@ -687,11 +695,12 @@ title () {
 }
 
 #show the short hostname, selected title, and yroot, and update them all on each prompt
-HOSTNAME=$(uname -n);
-HOSTNAME_FIRSTPART=${HOSTNAME%\.yahoo\.com};
-_arch=$(uname)
-_bg=$([ $_arch == "Darwin" ] && echo 44 || echo 42)
-_color=$([ $_arch == "Darwin" ] && echo 1 || echo 30)
+export HOSTNAME=$(uname -n);
+export HOSTNAME_FIRSTPART=${HOSTNAME%\.yahoo\.com};
+__arch=$(uname)
+__bg=$([ ${__arch} == "Darwin" ] && echo 44 || echo 42)
+__color=$([ ${__arch} == "Darwin" ] && echo 1 || echo 30)
+__garbage __arch
 PROMPT_COMMAND='history -a
 __settitle "${__title}"
 DIR=${PWD/$HOME/\~}
@@ -701,12 +710,10 @@ t=""
 [ "$TITLE" != "" ] && t="$TITLE — "
 echo ""
 echo -ne "\033[0m\033]0;$t${HOSTNAME_FIRSTPART%%\.*}:$DIR\007"
-[ "$TITLE" ] && echo -ne "\033[${_color}m\033[${_bg}m $TITLE \033[0m"
-echo -ne "\033[1;41m ${HOSTNAME_FIRSTPART} \033[0m:$DIR \033[1;30m\033[40m$((__svn_ps1;__git_ps1 " %s ") 2>/dev/null)\033[0m"'
-PS1='\n[\t \u] \! \\$ '
+[ "$TITLE" ] && echo -ne "\033[${__color}m\033[${__bg}m $TITLE \033[0m"
+echo -ne "\033[1;41m ${HOSTNAME_FIRSTPART} \033[0m:$DIR \033[1;30m\033[40m$(__git_ps1 " %s " 2>/dev/null)\033[0m"'
 #this part gets repeated when you tab to see options
-# \n[\t \u] \\$ "
-# PS1=' '$PS1
+PS1="\n[\t \u \$(tty)] !\! \\$ "
 
 # view processes.
 alias processes="ps axMuc | egrep '^[a-zA-Z0-9]'"
@@ -723,52 +730,24 @@ alias fh="ssh foohack.com"
 alias p="ssh isaacs.xen.prgmr.com"
 alias st="ssh sistertrain.com"
 
-
+# shorthand for checking on ssh agents.
 sshagents () {
 	pg -i ssh
 	set | grep SSH | grep -v grep
 	find /tmp/ -type s | grep -i ssh
 }
+# shorthand for creating a new ssh agent.
 agent () {
 	eval $( ssh-agent )
 	ssh-add
 }
 
 vazu () {
-	rsync -vazuR --stats --no-implied-dirs --delete --exclude=".*\.svn.*" "$@"
+	rsync -vazuR --stats --no-implied-dirs --delete "$@"
 }
 
-# fhcp () {
-# 	p="$PWD"
-# 	for i in "$@"; do
-# 		if [ -d "$p/$i" ] || [ -f "$p/$i" ]; then
-# 			dir=$(dirname "$p/$i")
-# 			siteroot=~/Sites/
-# 			rdir=${dir##$siteroot}
-# 			echo "Sending $i"
-# 			vazu $i foohack.com:~/apache/$rdir
-# 		fi
-# 	done
-# }
-# 
-# fhfetch () {
-# 	p="$PWD"
-# 	for i in "$@"; do
-# 		dir=$(dirname "$p/$i")
-# 		siteroot=~/Sites
-# 		# siteroot=$siteroot
-# 		# dir=$dir
-# 		rdir=${dir##$siteroot}
-# 		# echo rdir=$rdir
-# 		file=$(basename "$i")
-# 		# file=$file
-# 		rsync -vazu --no-implied-dirs --stats --exclude=".*\.svn.*" foohack.com:~/apache$rdir/$file $dir/
-# 		#scp -r foohack.com:~/apache$rdir/$file $dir
-# 	done
-# }
-
-
 repeat () {
+	local delay
 	if [ "$2" == "" ]; then
 		delay=1
 	else
@@ -783,15 +762,15 @@ repeat () {
 
 # floating-point calculations
 calc () {
-	expression="$@"
+	local expression="$@"
 	[ "${expression:0:6}" != "scale=" ] && expression="scale=16;$expression"
 	echo "$expression" | bc
 }
 
 # more handy wget for fetching files to a specific filename.
 fetch_to () {
-	from=$1
-	to=$2
+	local from=$1
+	local to=$2
 	[ "$to" == "" ] && to=$( basname "$from" )
 	[ "$to" == "" ] && echo "usage: fetch_to <url> [<filename>]" && return 1
 	wget -U "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.0.5) Gecko/2008120121 Firefox/3.0.5" -O "$to" "$from" || return 1
@@ -800,10 +779,10 @@ fetch_to () {
 # command-line perl prog
 alias pie="perl -pi -e "
 
-# c++ compile
+# c++ compilation shortcuts
 stripc () {
-	f="$1"
-	o="$f"
+	local f="$1"
+	local o="$f"
 	o=${o%.c}
 	o=${o%.cpp}
 	o=${o%.cc}
@@ -819,21 +798,21 @@ cr () {
 # tarsnap wrappers.
 # http://tarsnap.com
 ts () {
-	e=echo
+	local e=echo
 	inpath growlnotify && e="growlnotify -t tarsnap -m "
 	if [ $# -lt 1 ] || ! [ -e "$1" ]; then
 		$e "Need to supply a file/directory to back up" > /dev/stderr
 		return 1
 	fi
 	if [ $# -gt 1 ]; then
-		errors=0
+		local errors=0
 		for i in "$@"; do
 			ts $i || let 'errors += 1'
 		done
 		return $errors
 	fi
-	thetitle=$(title)
-	thefile="$1"
+	local thetitle=$(title)
+	local thefile="$1"
 	$e "backing up $thefile"
 	title "backing up $thefile"
 	backupfile="$(hostname):${thefile/\//}:$(date +%Y-%m-%d-%H-%M-%S)"
@@ -864,11 +843,16 @@ tsl () {
 
 
 #load any per-platform .extra.bashrc files.
-arch=$(uname -s);
-[ -f ~/.extra_$arch.bashrc ] && . ~/.extra_$arch.bashrc
+__garbage arch machinearch
+arch=$(uname -s)
 machinearch=$(uname -m)
+[ -f ~/.extra_$arch.bashrc ] && . ~/.extra_$arch.bashrc
 [ -f ~/.extra_${arch}_${machinearch}.bashrc ] && . ~/.extra_${arch}_${machinearch}.bashrc
 [ $has_yinst == 1 ] && [ -f ~/.extra_yinst.bashrc ] && . ~/.extra_yinst.bashrc
 inpath "git" && [ -f ~/.git-completion ] && . ~/.git-completion
+
+
+# call in the cleaner.
+__garbage
 
 export BASH_EXTRAS_LOADED=1
