@@ -41,7 +41,7 @@ if ! [ -f "$HOME" ]; then
 	export HOME="$(echo ~)"
 fi
 
-path=$HOME/bin:$HOME/scripts:/home/y/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:$HOME/dev/jack/narwhal/bin:$HOME/dev/jack/jack/bin:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/
+path=$HOME/bin:$HOME/scripts:/home/y/bin:$HOME/dev/serverjs/narwhal/bin:$HOME/dev/serverjs/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/
 ! [ -d ~/bin ] && mkdir ~/bin
 path_elements="${path//:/ }"
 path=""
@@ -166,8 +166,6 @@ substitute () {
 substitute yssh ssh
 substitute yscp scp
 
-export CVSROOT=vault.yahoo.com:/CVSROOT
-export CVS_RSH=$(choose_first yssh ssh)
 export SVN_RSH=$(choose_first yssh ssh)
 export RSYNC_RSH=$(choose_first yssh ssh)
 
@@ -463,7 +461,7 @@ alias lal="$ls_cmd -laFL"
 alias ll="$ls_cmd -lF"
 alias ag="alias | $grep"
 fn () {
-	func=$(set | egrep '^[a-zA-Z0-9_-]+ ()' | egrep -v '^_' | awk '{print $1}' | grep "$1")
+	func=$(declare -f "$1")
 	[ -z "$func" ] && echo "$1 is not a function" > /dev/stderr && return 1
 	echo $func && return 0
 }
@@ -482,7 +480,7 @@ wh () {
 
 
 #make tree a little cooler looking.
-alias tree="tree -CAFa -I 'CVS|rhel.*.*.package|.svn|.git' --dirsfirst"
+alias tree="tree -CAFa -I 'rhel.*.*.package|.svn|.git' --dirsfirst"
 
 if [ "$has_yinst" == 1 ]; then
 	# echo "has yinst = $has_yinst"
@@ -524,7 +522,7 @@ pushprof () {
 	rsync="rsync --copy-links -v -a -z"
 	for each in "$@"; do
 		if [ "$each" != "" ]; then
-			if $rsync ~/.{inputrc,tarsnaprc,profile,extra,cvsrc,git}* $each:~ && \
+			if $rsync ~/.{inputrc,tarsnaprc,profile,extra,git}* $each:~ && \
 					$rsync ~/.ssh/*{.pub,authorized_keys,config} $each:~/.ssh/; then
 				echo "Pushed bash extras and public keys to $each"
 			else
@@ -561,62 +559,6 @@ elif [ -f "$(which apt-get 2>/dev/null)" ]; then
 	alias upup="sudo apt-get update && sudo apt-get upgrade"
 fi
 
-
-
-
-#cvs stuff
-#more in .bash_extra_Darwin
-clearconflicts () {
-	edit=""
-	clear=""
-	for i in $(cvs up | egrep '^C' | egrep -o '[^C\ ].*$'); do
-		if [ -f "$i" ]; then
-			echo ""
-			echo -n "$i - what to do? (C)lean copy, (E)dit, (S)kip (skip) "
-			read -n 1 action
-			if [ "$action" == "C" ] || [ "$action" == "c" ]; then
-				echo ""
-				echo "clearit!"
-				clear="$clear $i"
-			elif [ "$action" == "E" ] || [ "$action" == "e" ]; then
-				edit="$edit $i"
-			fi
-		fi
-	done
-	if ! [ "$clear" == "" ]; then
-		for i in $clear; do
-			rm -rf $clear
-		done
-		cvs up -dPC $clear
-	fi
-	#echo "editing: [[[$edit]]]"
-	if ! [ "$edit" == "" ]; then
-		edit $edit
-	fi
-}
-
-cvsunknown () {
-	for i in $(uq); do
-		if [ -f "$i" ]; then
-			echo ""
-			echo -n "$i - what to do? (R)emove, (S)kip (skip) "
-			read -n 1 action
-			if [ "$action" == "R" ] || [ "$action" == "r" ]; then
-				rm -rf $i
-			fi
-		fi
-	done
-}
-
-diffless () {
-  cvs diff "$@" | less
-}
-alias cu="cvs up"
-alias ug="cvs up | egrep '^[^\?]'"
-alias um="cvs up | egrep '^(M|A)' | egrep -o '[^MA\ ].*$'"
-alias uq="cvs up | egrep '^\?' | egrep -o '[^\?\ ].*$'"
-alias cci="cvs ci"
-
 alias sci="svn ci"
 alias sg="svn up"
 alias sq="svn status | egrep '^\?' | egrep -o '[^\?\ ].*$'"
@@ -641,25 +583,38 @@ __svn_ps1 () {
 }
 # recursive grep with ignores.
 gri () {
-	grep -rs "$@" . | egrep -v '.svn/|CVS/'
+	grep -rs "$@" . | egrep -v '.svn/'
 }
 
 alias gci="git commit"
 alias gpu="git pull"
+ghadd () {
+	local me="$(git config --get github.user)"
+	[ "$me" == "" ] && echo "Please enter your github name as the github.user git config." && return 1
+	# like: "git@github.com:$me/$repo.git"
+	local mine="$( git config --get remote.origin.url )"
+	local repo="${mine/git@github.com:$me\//}"
+	local nick="$1"
+	local who="$2"
+	[ "$who" == "" ] && who="$nick"
+	[ "$who" == "" ] && echo "Whose repo do you want to add?" && return 1
+	# eg: git://github.com/isaacs/jack.git
+	local theirs="git://github.com/$who/$repo"
+	git remote add "$nick" "$theirs"
+}
+yup () { ypu; }
+ypu () {
+	for i in build upstream; do
+		git fetch -v $i
+	done
+}
 alias gps="git push --all"
+# for yui...
+# alias pu="git fetch origin -v; git fetch upstream -v; git merge upstream/master" 
+
 gpm () {
 	git pull $1 master
 }
-
-addcommit () {
-	cvs add "$@"
-	cvs commit "$@"
-}
-cvsrm () {
-	rm "$@"
-	cvs rm "$@"
-}
-alias cvsrev="cvs update -f -r "
 
 # look up a word
 dict () {
@@ -748,7 +703,7 @@ echo ""
 echo -ne "\033[0m\033]0;$t${HOSTNAME_FIRSTPART%%\.*}:$DIR\007"
 [ "$TITLE" ] && echo -ne "\033[${_color}m\033[${_bg}m $TITLE \033[0m"
 echo -ne "\033[1;41m ${HOSTNAME_FIRSTPART} \033[0m:$DIR \033[1;30m\033[40m$((__svn_ps1;__git_ps1 " %s ") 2>/dev/null)\033[0m"'
-PS1='\n[\t \u] \\$ '
+PS1='\n[\t \u] \! \\$ '
 #this part gets repeated when you tab to see options
 # \n[\t \u] \\$ "
 # PS1=' '$PS1
@@ -833,12 +788,13 @@ calc () {
 	echo "$expression" | bc
 }
 
-# more persistent wget for fetching files to a specific filename.
+# more handy wget for fetching files to a specific filename.
 fetch_to () {
-	[ $# -ne 2 ] && echo "usage: fetch_to <url> <filename>" && return 1
-	urltofetch=$1
-	fname="$2"
-	wget -U "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.0.5) Gecko/2008120121 Firefox/3.0.5" -O "$fname" $urltofetch
+	from=$1
+	to=$2
+	[ "$to" == "" ] && to=$( basname "$from" )
+	[ "$to" == "" ] && echo "usage: fetch_to <url> [<filename>]" && return 1
+	wget -U "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.0.5) Gecko/2008120121 Firefox/3.0.5" -O "$to" "$from" || return 1
 }
 
 # command-line perl prog
