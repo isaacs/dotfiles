@@ -30,58 +30,6 @@ viewsvn () {
 	fi
 }
 
-viewcvs () {
-	wd=$PWD
-	for x in $@; do
-		x="$wd/$x"
-		# argument should be a file or folder.
-		if [ -f "$x" ]; then
-			folder=$(dirname "$x")
-			thefile=$(basename "$x")
-		elif [ -d "$x" ]; then
-			folder="$x"
-			thefile=""
-		else
-			#echo "invalid argument : $x"
-			return
-		fi
-	
-		cvsfolder="$folder/CVS"
-		#echo "cvsfolder = $cvsfolder"
-		if ! [ -d "$cvsfolder" ]; then
-			#echo "not in a cvs folder"
-			return
-		fi
-		repo=$(cat "$folder/CVS/Repository")
-	
-		open http://vault.yahoo.com/viewcvs/$repo/$thefile
-	done
-}
-
-cvsdiff () {
-	SCRIPTNAME="${0##*/}"
-	OLDFILE=/tmp/"${1##*/}"
-	NEWFILE="$1"
-
-	if [ $# -eq 1 ]
-	then
-	   cvs update -p "$NEWFILE" > "$OLDFILE"
-	elif [ $# -eq 2 ]
-	then
-	   cvs update -p -r "$2" "$NEWFILE"  > "$OLDFILE"
-	else
-	   echo "usage: $SCRIPTNAME <file> [rev]"
-	   return 1
-	fi
-
-	#echo "newfile $NEWFILE"
-	#echo "oldfile $OLDFILE"
-	#echo "pwd $(pwd)"
-
-	opendiff "$OLDFILE" "$NEWFILE" -merge "$PWD/$NEWFILE"
-}
-
-
 unison_bin="$(which unison)"
 unison_prof="yap"
 unison () {
