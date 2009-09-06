@@ -28,9 +28,6 @@
 
 echo "loading bash extras..."
 
-# i like my aliases.  please always have them!
-shopt expand_aliases &>/dev/null
-
 if [ "$BASH_COMPLETION_DIR" == "" ]; then
 	[ -f /opt/local/etc/bash_completion ] && . /opt/local/etc/bash_completion
 	[ -f /etc/bash_completion ] && . /etc/bash_completion
@@ -90,11 +87,24 @@ export TZ=America/Los_Angeles
 export HISTSIZE=1000000
 export HISTFILESIZE=1000000000
 
-# append to history rather than overwriting.
-shopt -s histappend
+__garbage __shopt
+__shopt () {
+	local i
+	for i in "$@"; do
+		shopt -s $i
+	done
+}
+# see http://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html#The-Shopt-Builtin
+__shopt \
+	histappend histverify histreedit \
+	cdspell expand_aliases cmdhist \
+	hostcomplete no_empty_cmd_completion nocaseglob
 
-# don't be so prickly about spelling
-shopt -s cdspell
+hist () {
+	history \
+		| grep "$@" \
+		| uniq -f 2 -u
+}
 
 
 alias ..="cd .."
