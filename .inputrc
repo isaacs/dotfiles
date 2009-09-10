@@ -1,7 +1,24 @@
+# Make up and down scroll through history entries prefixed with entered text.
+# Ex: history contains (ls,pwd,echo "foo",ps aux)
+# type: p(UP) --> scrolls through "ps aux" and "pwd", skips echo and ls.
+# Use ctrl-P and ctrl-N to walk through history the default way.
 "\e[A": history-search-backward
 "\e[B": history-search-forward
 "\e[C": forward-char
 "\e[D": backward-char
+
+# Trying to make ctrl-(right|left) skip through words.
+# This doesn't work, not sure why.
+# "\C-\e[C": forward-word
+# "\C-\e[D": backward-word
+
+# Make it show more useful info.
 set completion-ignore-case on
 set visible-stats on
 set show-all-if-ambiguous on
+set mark-symlinked-directories on
+
+# Ctrl-E to open the editor, either in rlwrap or other readline-enabled apps.
+"\C-e": edit-and-execute-command
+"\C-e": rlwrap_call_editor
+# Space: magic-space
