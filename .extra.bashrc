@@ -84,8 +84,12 @@ export LC_ALL=""
 export LANG=$LC_CTYPE
 export LANGUAGE=$LANG
 export TZ=America/Los_Angeles
-export HISTSIZE=1000000
+export HISTSIZE=10000
 export HISTFILESIZE=1000000000
+# I prefer to use : instead of ^ for history replacements
+# much faster to type.  It'd be neat to use /, but then it gets
+# confused with absolute paths, like "/bin/env"
+export histchars="!:#"
 
 __garbage __shopt
 __shopt () {
@@ -108,6 +112,7 @@ hist () {
 
 
 alias ..="cd .."
+alias -- -="cd -"
 
 # read a line from stdin, write to stdout.
 getln () { read "$@" t && echo $t; }
@@ -205,27 +210,25 @@ substitute yscp scp
 
 export SVN_RSH=$(choose_first yssh ssh)
 export RSYNC_RSH=$(choose_first yssh ssh)
+export INPUTRC=$HOME/.inputrc
+export POSIXLY_CORRECT=1
 
 __garbage has_yinst
 has_yinst=0
 inpath yinst && has_yinst=1
 
 # useful commands:
-__set_editor () {
-	local edit_cmd="$( choose_first "$@" )"
-	if [ -f "$edit_cmd" ]; then
-		if [ -f "${edit_cmd}_wait" ]; then
-			export EDITOR="${edit_cmd}_wait"
-		else
-			export EDITOR="$edit_cmd"
-		fi
-	fi
-	alias edit="$edit_cmd"
-	alias sued="sudo $edit_cmd"
+__get_edit_cmd () {
+	echo "$( choose_first "$@" )"
 }
 # my list of editors, by preference.
-__set_editor mate vim vi pico ed
-__garbage __set_editor
+__edit_cmd="$( __get_edit_cmd mate vim vi pico ed )"
+alias edit="${__edit_cmd}"
+alias sued="sudo ${__edit_cmd}"
+export EDITOR="$( choose_first ${__edit_cmd}_wait ${__edit_cmd} )"
+export VISUAL="$EDITOR"
+__garbage __get_edit_cmd __edit_cmd
+
 
 # shebang <file> <program> [<args>]
 shebang () {
@@ -292,7 +295,7 @@ pickrand () {
 # inside. You wanna fight about it?
 if ! inpath md5 && inpath php; then
 	# careful on this next trick. The php code can *not* use single-quotes.
-	echo  '<?php
+	echo '<?php
 		// The BSD md5 checksum program, ported to PHP by Isaac Z. Schlueter
 		
 		exit main($argc, $argv);
@@ -682,6 +685,7 @@ macs () {
 ! [ "${__title}" ] && __title=''
 __settitle () {
 	__title="$1"
+	
 	if [ "$YROOT_NAME" != "" ]; then
 		if [ "${__title}" != "" ]; then
 			TITLE="$YROOT_NAME — ${__title}"
@@ -691,10 +695,13 @@ __settitle () {
 	else
 		TITLE=${__title}
 	fi
+	local gittitle=$( __git_ps1 "%s — ")
+	
+	
 	DIR=${PWD/$HOME/\~}
-	t=""
+	local t=""
 	[ "$TITLE" != "" ] && t="$TITLE — "
-	echo -ne "\033]0;$t${HOSTNAME_FIRSTPART%%\.*}:$DIR\007"
+	echo -ne "\033]0;$gittitle$t${HOSTNAME_FIRSTPART%%\.*}:$DIR\007"
 }
 title () {
 	if [ ${#@} == 1 ]; then
@@ -711,19 +718,16 @@ __arch=$(uname)
 __bg=$([ ${__arch} == "Darwin" ] && echo 44 || echo 42)
 __color=$([ ${__arch} == "Darwin" ] && echo 1 || echo 30)
 __garbage __arch
-PROMPT_COMMAND='history -a
-__settitle "${__title}"
-DIR=${PWD/$HOME/\~}
 export HOSTNAME=$(uname -n)
 export HOSTNAME_FIRSTPART=${HOSTNAME%\.yahoo\.com}
-t=""
-[ "$TITLE" != "" ] && t="$TITLE — "
+PROMPT_COMMAND='history -a
+__settitle "${__title}"
 echo ""
-echo -ne "\033[0m\033]0;$t${HOSTNAME_FIRSTPART%%\.*}:$DIR\007"
 [ "$TITLE" ] && echo -ne "\033[${__color}m\033[${__bg}m $TITLE \033[0m"
-echo -ne "\033[1;41m ${HOSTNAME_FIRSTPART} \033[0m:$DIR \033[1;30m\033[40m$(__git_ps1 " %s " 2>/dev/null)\033[0m"'
+echo -ne "$(__git_ps1 "\033[41m\033[1;37m %s \033[0m")"
+echo -ne "\033[40m\033[37m$(whoami)@${HOSTNAME_FIRSTPART}\033[0m:$DIR"'
 #this part gets repeated when you tab to see options
-PS1="\n[\t \u \$(tty)] !\! \\$ "
+PS1="\n[\t \!] \\$ "
 
 # view processes.
 alias processes="ps axMuc | egrep '^[a-zA-Z0-9]'"
