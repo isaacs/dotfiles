@@ -13,7 +13,6 @@
 # a GUI environment, and my primary platform.
 ######
 
-
 # Note for Leopard Users #
 # If you use this, it will probably make your $PATH variable pretty long,
 # which will cause terrible performance in a stock Leopard install.
@@ -24,7 +23,6 @@
 # fi
 
 # Thanks to "allan" in irc://irc.freenode.net/#textmate for knowing this!
-
 
 echo "loading bash extras..."
 
@@ -71,9 +69,9 @@ __set_path () {
 	done
 	export $var=$(path=$(echo $path); echo ${path// /:})
 }
-__set_path "PATH" "$HOME/bin:$HOME/scripts:/home/y/bin:$HOME/dev/serverjs/narwhal/bin:$HOME/dev/serverjs/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/"
+__set_path "PATH" "$HOME/bin:$HOME/scripts:/home/y/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/"
 
-__set_path CLASSPATH "./:~/dev/rhino/build/classes:~/dev/fcgi/fcgi-2.4.0/java"
+__set_path CLASSPATH "./:~/dev/js/rhino/build/classes"
 __set_path CDPATH ".:..:$HOME/dev:$HOME"
 
 # Use UTF-8, and throw errors in PHP and Perl if it's not available.
@@ -109,7 +107,6 @@ hist () {
 		| grep "$@" \
 		| uniq -f 2 -u
 }
-
 
 alias ..="cd .."
 alias -- -="cd -"
@@ -229,7 +226,6 @@ export EDITOR="$( choose_first ${__edit_cmd}_wait ${__edit_cmd} )"
 export VISUAL="$EDITOR"
 __garbage __get_edit_cmd __edit_cmd
 
-
 # shebang <file> <program> [<args>]
 shebang () {
 	local sb="shebang"
@@ -286,7 +282,6 @@ pickrand () {
 		[ $tst "$i" ] && let 'cnt += 1' && [ $cnt -eq $p ] && echo "$i" && return
 	done
 }
-
 
 # md5 from the command line
 # I like the BSD/Darwin "md5" util a bit better than md5sum flavor.
@@ -482,13 +477,14 @@ if ! inpath del; then
 		alias del=rm
 	fi
 fi
+
 alias mvsafe="mv -i"
 
 lscolor=""
 __garbage lscolor
 if [ "$TERM" != "dumb" ] && [ -f "$(which dircolors 2>/dev/null)" ]; then
 	eval "$(dircolors -b)"
-	local lscolor=" --color=auto"
+	lscolor=" --color=auto"
 	#alias dir='ls --color=auto --format=vertical'
 	#alias vdir='ls --color=auto --format=long'
 fi
@@ -510,13 +506,10 @@ alias chdir="cd"
 export MANPAGER=more
 alias lsdevs="sudo lsof | $grep ' /dev'"
 
-
 # domain sniffing
 wi () {
 	whois $1 | egrep -i '(registrar:|no match|record expires on|holder:)'
 }
-
-
 
 #make tree a little cooler looking.
 alias tree="tree -CAFa -I 'rhel.*.*.package|.git' --dirsfirst"
@@ -597,7 +590,6 @@ elif inpath apt-get; then
 	}
 	alias upup="sudo apt-get update && sudo apt-get upgrade"
 fi
-
 alias gci="git commit"
 alias gpu="git pull"
 ghadd () {
@@ -695,7 +687,7 @@ __settitle () {
 	else
 		TITLE=${__title}
 	fi
-	local gittitle=$( __git_ps1 "%s — ")
+	local gittitle=$( __git_ps1 "%s — " 2>/dev/null )
 	
 	
 	DIR=${PWD/$HOME/\~}
@@ -792,7 +784,6 @@ fetch_to () {
 
 # command-line perl prog
 alias pie="perl -pi -e "
-
 # c++ compilation shortcuts
 stripc () {
 	local f="$1"
@@ -855,7 +846,6 @@ tsl () {
 	tslisten
 }
 
-
 #load any per-platform .extra.bashrc files.
 __garbage arch machinearch
 arch=$(uname -s)
@@ -864,7 +854,6 @@ machinearch=$(uname -m)
 [ -f ~/.extra_${arch}_${machinearch}.bashrc ] && . ~/.extra_${arch}_${machinearch}.bashrc
 [ $has_yinst == 1 ] && [ -f ~/.extra_yinst.bashrc ] && . ~/.extra_yinst.bashrc
 inpath "git" && [ -f ~/.git-completion ] && . ~/.git-completion
-
 
 # call in the cleaner.
 __garbage
