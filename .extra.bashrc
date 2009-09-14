@@ -581,7 +581,7 @@ elif inpath port; then
 	yg () {
 		port list '*'"$@"'*'
 	}
-	alias upup="sudo port sync && sudo port upgrade installed"
+	alias upup="sudo port sync && sudo port upgrade outdated"
 elif inpath apt-get; then
 	alias inst="sudo apt-get install"
 	alias yl="dpkg --list | egrep '^ii'"
