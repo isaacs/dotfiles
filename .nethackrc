@@ -1,0 +1,18 @@
+OPTIONS=name:Isaac,race:Elf,role:Monk,gender:male,align:chaotic
+OPTIONS=catname:Sage,dogname:Aristotle,horsename:Mini,pettype:cat
+OPTIONS=msghistory:10000,autodig,autoquiver,pushweapon,color,
+OPTIONS=hilite_pet,lit_corridor,menucolors,showrace,showexp
+OPTIONS=scores:10t 2a o,showscore,time,boulder:@,DECgraphics,msg_window:reversed
+
+# === MENUCOLOR ===
+# lightcyan - good food
+# orange - cursed (or under +0)
+# yellow - not cursed
+# lightgreen - blessed
+MENUCOLOR="safe"=yellow
+MENUCOLOR="[0-9]:[0-9]"=yellow
+MENUCOLOR="\+[0-9]"=yellow
+MENUCOLOR="[Cc]ursed"=orange
+MENUCOLOR="[Uu]ncursed"=yellow
+MENUCOLOR="[Bb]lessed"=lightgreen
+MENUCOLOR="-[0-9]"=orange
