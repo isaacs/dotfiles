@@ -579,9 +579,16 @@ elif inpath port; then
 	alias inst="sudo port install"
 	alias yl="port list installed"
 	yg () {
-		port list '*'"$@"'*'
+		port list installed | grep "$@"
 	}
 	alias upup="sudo port sync && sudo port upgrade outdated"
+	cleanpkg () {
+		for i in "$@"; do
+			sudo port uninstall -f $i
+			sudo port clean $i
+			sudo port install $i
+		done
+	}
 elif inpath apt-get; then
 	alias inst="sudo apt-get install"
 	alias yl="dpkg --list | egrep '^ii'"
