@@ -60,7 +60,7 @@ __set_path () {
 	local var="$1"
 	local path="$2"
 	
-	! [ -d ~/bin ] && mkdir ~/bin
+	! [ -d $HOME/bin ] && mkdir $HOME/bin
 	local path_elements="${path//:/ }"
 	path=""
 	local i
@@ -71,8 +71,13 @@ __set_path () {
 }
 __set_path "PATH" "$HOME/bin:$HOME/scripts:/home/y/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin"
 
-__set_path CLASSPATH "./:~/dev/js/rhino/build/classes"
+__set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompressor/src"
 __set_path CDPATH ".:..:$HOME/dev:$HOME"
+__set_path NODE_LIBRARY_PATHS "$HOME/.node_libraries:$HOME/.npm:$HOME/dev/js/node/lib:/usr/local/lib/node_libraries"
+__set_path PYTHONPATH "$HOME/dev/js/node/deps/v8/tools/:$HOME/dev/js/node/tools"
+alias js="rlwrap node-repl"
+
+
 
 # Use UTF-8, and throw errors in PHP and Perl if it's not available.
 # Note: this is VERY obnoxious if UTF8 is not available!
@@ -208,7 +213,7 @@ substitute yscp scp
 export SVN_RSH=$(choose_first yssh ssh)
 export RSYNC_RSH=$(choose_first yssh ssh)
 export INPUTRC=$HOME/.inputrc
-export POSIXLY_CORRECT=1
+# export POSIXLY_CORRECT=1
 
 __garbage has_yinst
 has_yinst=0
@@ -458,19 +463,19 @@ if ! inpath md5 && inpath php; then
 		function writeln ($str) {
 			echo "$str\n";
 		}
-	?>'>~/bin/md5
-	shebang ~/bin/md5 php "-d open_basedir="
+	?>'>$HOME/bin/md5
+	shebang $HOME/bin/md5 php "-d open_basedir="
 fi
 
 # a friendlier delete on the command line
-! [ -d ~/.Trash ] && mkdir ~/.Trash
-chmod 700 ~/.Trash
-alias emptytrash="find ~/.Trash -not -path ~/.Trash -exec rm -rf {} \; 2>/dev/null"
+! [ -d $HOME/.Trash ] && mkdir $HOME/.Trash
+chmod 700 $HOME/.Trash
+alias emptytrash="find $HOME/.Trash -not -path $HOME/.Trash -exec rm -rf {} \; 2>/dev/null"
 if ! inpath del; then
-	if [ -d ~/.Trash ]; then
+	if [ -d $HOME/.Trash ]; then
 		del () {
 			for i in "$@"; do
-				mv "$i" ~/.Trash/
+				mv "$i" $HOME/.Trash/
 			done
 		}
 	else
@@ -538,14 +543,14 @@ alias yaprl="$yapr;$yapl"
 alias yapl="$yapl"
 
 prof () {
-	. ~/.extra.bashrc
+	. $HOME/.extra.bashrc
 }
 editprof () {
 	s=""
 	if [ "$1" != "" ]; then
 		s="_$1"
 	fi
-	$EDITOR ~/.extra$s.bashrc
+	$EDITOR $HOME/.extra$s.bashrc
 	prof
 }
 pushprof () {
@@ -554,8 +559,8 @@ pushprof () {
 	local rsync="rsync --copy-links -v -a -z"
 	for each in "$@"; do
 		if [ "$each" != "" ]; then
-			if $rsync ~/.{inputrc,tarsnaprc,profile,extra,git}* $each:~ && \
-					$rsync ~/.ssh/*{.pub,authorized_keys,config} $each:~/.ssh/; then
+			if $rsync $HOME/.{inputrc,tarsnaprc,profile,extra,git}* $each:~ && \
+					$rsync $HOME/.ssh/*{.pub,authorized_keys,config} $each:~/.ssh/; then
 				echo "Pushed bash extras and public keys to $each"
 			else
 				echo "Failed to push to $each"
@@ -644,7 +649,7 @@ getip () {
 # Show the IP addresses of this machine, with each interface that the address is on.
 ips () {
 	local interface=""
-	local types='vmnet|en|eth'
+	local types='vmnet|en|eth|vboxnet'
 	local i
 	for i in $(
 		ifconfig \
@@ -698,6 +703,7 @@ __settitle () {
 	
 	
 	DIR=${PWD/$HOME/\~}
+	DIR=${DIR/~\/Documents\/src/~\/dev}
 	local t=""
 	[ "$TITLE" != "" ] && t="$TITLE — "
 	echo -ne "\033]0;$gittitle$t${HOSTNAME_FIRSTPART%%\.*}:$DIR\007"
@@ -723,7 +729,7 @@ PROMPT_COMMAND='history -a
 __settitle "${__title}"
 echo ""
 [ "$TITLE" ] && echo -ne "\033[${__color}m\033[${__bg}m $TITLE \033[0m"
-echo -ne "$(__git_ps1 "\033[41m\033[1;37m %s \033[0m")"
+echo -ne "$(__git_ps1 "\033[41m\033[37m %s \033[0m")"
 echo -ne "\033[40m\033[37m$(whoami)@${HOSTNAME_FIRSTPART}\033[0m:$DIR"'
 #this part gets repeated when you tab to see options
 PS1="\n[\t \!] \\$ "
@@ -829,7 +835,7 @@ ts () {
 	title "backing up $thefile"
 	backupfile="$(hostname):${thefile/\//}:$(date +%Y-%m-%d-%H-%M-%S)"
 	backupfile=${backupfile//\//-}
-	tarsnap -cvf "$backupfile" $thefile 2> ~/.tslog
+	tarsnap -cvf "$backupfile" $thefile 2> $HOME/.tslog
 	$e "done backing up $thefile"
 	title "$thetitle"
 }
@@ -847,7 +853,7 @@ tsabort () {
 	kill $(pid tarsnap)
 }
 tslisten () {
-	tail -f ~/.tslog
+	tail -f $HOME/.tslog
 }
 tsl () {
 	tslisten
@@ -857,10 +863,10 @@ tsl () {
 __garbage arch machinearch
 arch=$(uname -s)
 machinearch=$(uname -m)
-[ -f ~/.extra_$arch.bashrc ] && . ~/.extra_$arch.bashrc
-[ -f ~/.extra_${arch}_${machinearch}.bashrc ] && . ~/.extra_${arch}_${machinearch}.bashrc
-[ $has_yinst == 1 ] && [ -f ~/.extra_yinst.bashrc ] && . ~/.extra_yinst.bashrc
-inpath "git" && [ -f ~/.git-completion ] && . ~/.git-completion
+[ -f $HOME/.extra_$arch.bashrc ] && . $HOME/.extra_$arch.bashrc
+[ -f $HOME/.extra_${arch}_${machinearch}.bashrc ] && . $HOME/.extra_${arch}_${machinearch}.bashrc
+[ $has_yinst == 1 ] && [ -f $HOME/.extra_yinst.bashrc ] && . $HOME/.extra_yinst.bashrc
+inpath "git" && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
 
 # call in the cleaner.
 __garbage
