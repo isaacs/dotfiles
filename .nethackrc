@@ -1,8 +1,8 @@
-OPTIONS=name:Isaac,race:Elf,role:Monk,gender:male,align:chaotic
+OPTIONS=name:MNM,role:Valkyrie,gender:female,align:lawful,race:human
 OPTIONS=catname:Sage,dogname:Aristotle,horsename:Mini,pettype:cat
 OPTIONS=msghistory:10000,autodig,autoquiver,pushweapon,color,
 OPTIONS=hilite_pet,lit_corridor,menucolors,showrace,showexp
-OPTIONS=scores:10t 2a o,showscore,time,boulder:@,DECgraphics,msg_window:reversed
+OPTIONS=scores:10t 4a o,showscore,time,boulder:8,DECgraphics,msg_window:reversed
 
 # === MENUCOLOR ===
 # lightcyan - good food
