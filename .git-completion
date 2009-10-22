@@ -114,7 +114,7 @@ __git_ps1 ()
 		local n
 		if n=$(basename $(\
 			basename $(\
-				git config --get remote.origin.url 2>/dev/null)) ".git")
+				git config --get remote.origin.url 2>/dev/null) 2>/dev/null) ".git" 2>/dev/null)
 		then
 			b="$n/$b"
 		fi
