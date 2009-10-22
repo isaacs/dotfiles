@@ -4,9 +4,11 @@
 	br = branch
 	co = checkout
 	df = diff
-	lg = log --graph
-	lo = log --pretty=oneline
+	lg = log --graph --pretty=format:'%Cred%h%Creset %C(yellow)%an%d%Creset %s %Cgreen(%cr)%Creset' --date=relative
+	lo = log --oneline
 	pu = !"git fetch origin; git fetch upstream; git merge upstream/master"
+[branch.master]
+	mergeoptions = log
 [color]
 	branch = auto
 	diff = auto
