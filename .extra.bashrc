@@ -73,7 +73,7 @@ __set_path "PATH" "$HOME/bin:$HOME/scripts:/home/y/bin:$HOME/dev/js/narwhal/bin:
 
 __set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompressor/src"
 __set_path CDPATH ".:..:$HOME/dev:$HOME"
-__set_path NODE_LIBRARY_PATHS "$HOME/.node_libraries:$HOME/.npm:$HOME/dev/js/node/lib:/usr/local/lib/node_libraries"
+__set_path NODE_PATH "$HOME/.node_libraries:$HOME/.npm:$HOME/dev/js/node/lib:/usr/local/lib/node_libraries:$HOME/dev/js/node-glob/build/default"
 __set_path PYTHONPATH "$HOME/dev/js/node/deps/v8/tools/:$HOME/dev/js/node/tools"
 alias js="rlwrap node-repl"
 
@@ -517,7 +517,7 @@ wi () {
 }
 
 #make tree a little cooler looking.
-alias tree="tree -CAFa -I 'rhel.*.*.package|.git' --dirsfirst"
+alias tree="tree -CFa -I 'rhel.*.*.package|.git' --dirsfirst"
 
 __garbage yapr
 if [ $has_yinst -eq 1 ]; then
