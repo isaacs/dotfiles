@@ -26,11 +26,6 @@
 
 echo "loading bash extras..."
 
-if [ "$BASH_COMPLETION_DIR" == "" ]; then
-	[ -f /opt/local/etc/bash_completion ] && . /opt/local/etc/bash_completion
-	[ -f /etc/bash_completion ] && . /etc/bash_completion
-fi
-
 # set some globals
 if ! [ -f "$HOME" ]; then
 	export HOME="$(echo ~)"
@@ -58,23 +53,43 @@ __garbage () {
 __garbage __set_path
 __set_path () {
 	local var="$1"
-	local path="$2"
+	local p="$2"
 	
 	! [ -d $HOME/bin ] && mkdir $HOME/bin
-	local path_elements="${path//:/ }"
-	path=""
+	local path_elements="${p//:/ }"
+	p=""
 	local i
 	for i in $path_elements; do
-		[ -d $i ] && path="$path$i "
+		[ -d $i ] && p="$p$i "
 	done
-	export $var=$(path=$(echo $path); echo ${path// /:})
+	export $var=$(p=$(echo $p); echo ${p// /:})
 }
-__set_path "PATH" "$HOME/bin:$HOME/scripts:/home/y/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin"
+__set_path "PATH" "$HOME/bin:$HOME/scripts:$HOME/.homebrew/bin:$HOME/.homebrew/sbin:/home/y/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin"
 
 __set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompressor/src"
 __set_path CDPATH ".:..:$HOME/dev:$HOME"
 __set_path NODE_PATH "$HOME/.node_libraries:$HOME/.npm:$HOME/dev/js/node/lib:/usr/local/lib/node_libraries:$HOME/dev/js/node-glob/build/default"
 __set_path PYTHONPATH "$HOME/dev/js/node/deps/v8/tools/:$HOME/dev/js/node/tools"
+
+# fail if the file is not an executable in the path.
+inpath () {
+	! [ $# -eq 1 ] && echo "usage: inpath <file>" && return 1
+	f="$(which "$1" 2>/dev/null)"
+	[ -f "$f" ] && return 0
+	return 1
+}
+
+echo_error () {
+	echo "$@" 1>&2
+	return 0
+}
+
+if [ -z "$BASH_COMPLETION_DIR" ]; then
+	# [ -f /opt/local/etc/bash_completion ] && . /opt/local/etc/bash_completion
+	inpath brew && [ -f "$(brew --prefix)/etc/bash_completion" ] && . "$(brew --prefix)/etc/bash_completion"
+	[ -f /etc/bash_completion ] && . /etc/bash_completion
+fi
+
 alias js="rlwrap node-repl"
 
 
@@ -94,18 +109,20 @@ export HISTFILESIZE=1000000000
 # confused with absolute paths, like "/bin/env"
 export histchars="!:#"
 
-__garbage __shopt
-__shopt () {
-	local i
-	for i in "$@"; do
-		shopt -s $i
-	done
-}
-# see http://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html#The-Shopt-Builtin
-__shopt \
-	histappend histverify histreedit \
-	cdspell expand_aliases cmdhist \
-	hostcomplete no_empty_cmd_completion nocaseglob
+if ! [ -z "$BASH" ]; then
+	__garbage __shopt
+	__shopt () {
+		local i
+		for i in "$@"; do
+			shopt -s $i
+		done
+	}
+	# see http://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html#The-Shopt-Builtin
+	__shopt \
+		histappend histverify histreedit \
+		cdspell expand_aliases cmdhist \
+		hostcomplete no_empty_cmd_completion nocaseglob
+fi
 
 hist () {
 	history \
@@ -113,8 +130,9 @@ hist () {
 		| uniq -f 2 -u
 }
 
-alias ..="cd .."
-alias -- -="cd -"
+alias cd=pushd
+alias ..="pushd .."
+alias -- -="popd"
 
 # read a line from stdin, write to stdout.
 getln () { read "$@" t && echo $t; }
@@ -132,13 +150,6 @@ choose_first () {
 	done
 }
 
-# fail if the file is not an executable in the path.
-inpath () {
-	! [ $# -eq 1 ] && echo "usage: inpath <file>" && return 1
-	f="$(which "$1" 2>/dev/null)"
-	[ -f "$f" ] && return 0
-	return 1
-}
 
 # show a certain line of a file, or stdin
 line () {
@@ -170,7 +181,7 @@ quiet () {
 }
 #do something to all the things on standard input.
 # echo 1 2 3 | foreach echo foo is like calling echo foo 1; echo foo 2; echo foo 3;
-foreach () {
+fe () {
 	local $i
 	for i in $(cat /dev/stdin); do
 		"$@" $i;
@@ -192,14 +203,14 @@ if inpath yuicompressor; then
 	}
 fi
 
-# give a little colou?r to grep commands, if supported
-grep=grep
-if [ "$(grep --help | grep color)" != "" ]; then
-	grep="grep --color"
-elif [ "$(grep --help | grep colour)" != "" ]; then
-	grep="grep --colour"
-fi
-alias grep="$grep"
+# # give a little colou?r to grep commands, if supported
+# grep=grep
+# if [ "$(grep --help | grep color)" != "" ]; then
+# 	grep="grep --color"
+# elif [ "$(grep --help | grep colour)" != "" ]; then
+# 	grep="grep --colour"
+# fi
+# alias grep="$grep"
 
 # substitute "this" for "that" if "this" exists and is in the path.
 substitute () {
@@ -469,7 +480,6 @@ fi
 
 # a friendlier delete on the command line
 ! [ -d $HOME/.Trash ] && mkdir $HOME/.Trash
-chmod 700 $HOME/.Trash
 alias emptytrash="find $HOME/.Trash -not -path $HOME/.Trash -exec rm -rf {} \; 2>/dev/null"
 if ! inpath del; then
 	if [ -d $HOME/.Trash ]; then
@@ -499,17 +509,17 @@ alias ls="$ls_cmd"
 alias la="$ls_cmd -laF"
 alias lal="$ls_cmd -laFL"
 alias ll="$ls_cmd -lF"
-alias ag="alias | $grep"
+alias ag="alias | grep"
 fn () {
 	local func=$(declare -f "$1")
-	[ -z "$func" ] && echo "$1 is not a function" > /dev/stderr && return 1
+	[ -z "$func" ] && echo_error "$1 is not a function" && return 1
 	echo $func && return 0
 }
-alias lg="$ls_cmd -laF | $grep"
+alias lg="$ls_cmd -laF | grep"
 alias chdir="cd"
 # alias more="less -e"
 export MANPAGER=more
-alias lsdevs="sudo lsof | $grep ' /dev'"
+alias lsdevs="sudo lsof | grep ' /dev'"
 
 # domain sniffing
 wi () {
@@ -536,9 +546,9 @@ else
 fi
 alias yapr="$yapr"
 
-__garbage error_log
-error_log="$(choose_first /opt/local/var/log/lighttpd/error.log /home/y/logs/yapache/php-error /home/y/logs/yapache/error /home/y/logs/yapache/error_log /home/y/logs/yapache/us/error_log /home/y/logs/yapache/us/error /opt/local/apache2/logs/error_log /var/log/httpd/error_log /var/log/httpd/error)"
-yapl="tail -f $error_log | egrep -v '^E|udbClient'"
+__garbage http_log
+http_log="$(choose_first /opt/local/var/log/lighttpd/error.log /home/y/logs/yapache/php-error /home/y/logs/yapache/error /home/y/logs/yapache/error_log /home/y/logs/yapache/us/error_log /home/y/logs/yapache/us/error /opt/local/apache2/logs/error_log /var/log/httpd/error_log /var/log/httpd/error)"
+yapl="tail -f $http_log | egrep -v '^E|udbClient'"
 alias yaprl="$yapr;$yapl"
 alias yapl="$yapl"
 
@@ -575,10 +585,16 @@ if [ $has_yinst -eq 1 ]; then
 	alias inst="yinst install"
 	alias yl="yinst ls"
 	yg () {
-		yinst ls | $grep "$@"
+		yinst ls | grep "$@"
 	}
 	ysg () {
-		yinst set | $grep "$@"
+		yinst set | grep "$@"
+	}
+elif inpath brew; then
+	alias inst="brew install"
+	alias yl="brew list"
+	yg () {
+		brew list | grep "$@"
 	}
 elif inpath port; then
 	alias inst="sudo port install"
@@ -598,7 +614,7 @@ elif inpath apt-get; then
 	alias inst="sudo apt-get install"
 	alias yl="dpkg --list | egrep '^ii'"
 	yg () {
-		dpkg --list | egrep '^ii' | $grep "$@"
+		dpkg --list | egrep '^ii' | grep "$@"
 	}
 	alias upup="sudo apt-get update && sudo apt-get upgrade"
 fi
@@ -719,15 +735,17 @@ title () {
 #show the short hostname, selected title, and yroot, and update them all on each prompt
 export HOSTNAME=$(uname -n);
 export HOSTNAME_FIRSTPART=${HOSTNAME%\.yahoo\.com};
-__arch=$(uname)
-__bg=$([ ${__arch} == "Darwin" ] && echo 44 || echo 42)
-__color=$([ ${__arch} == "Darwin" ] && echo 1 || echo 30)
+export __arch=$(uname)
+export __bg=$([ ${__arch} == "Darwin" ] && echo 44 || echo 42)
+export __color=$([ ${__arch} == "Darwin" ] && echo 1 || echo 30)
 __garbage __arch
 export HOSTNAME=$(uname -n)
 export HOSTNAME_FIRSTPART=${HOSTNAME%\.yahoo\.com}
+
 PROMPT_COMMAND='history -a
 __settitle "${__title}"
 echo ""
+[ -x ./configure ] && echo -ne "\033[42m\033[1;30m→\033[m"
 [ "$TITLE" ] && echo -ne "\033[${__color}m\033[${__bg}m $TITLE \033[0m"
 echo -ne "$(__git_ps1 "\033[41m\033[37m %s \033[0m")"
 echo -ne "\033[40m\033[37m$(whoami)@${HOSTNAME_FIRSTPART}\033[0m:$DIR"'
@@ -737,7 +755,7 @@ PS1="\n[\t \!] \\$ "
 # view processes.
 alias processes="ps axMuc | egrep '^[a-zA-Z0-9]'"
 pg () {
-	ps aux | $grep "$@" | grep -v "$( echo $grep "$@" )"
+	ps aux | grep "$@" | grep -v "$( echo grep "$@" )"
 }
 pid () {
 	pg "$@" | awk '{print $2}'
@@ -763,20 +781,6 @@ agent () {
 
 vazu () {
 	rsync -vazuR --stats --no-implied-dirs --delete "$@"
-}
-
-repeat () {
-	local delay
-	if [ "$2" == "" ]; then
-		delay=1
-	else
-		delay=$2
-	fi
-	while sleep $delay; do
-		clear
-		date +%s
-		$1
-	done
 }
 
 # floating-point calculations
@@ -812,6 +816,20 @@ cm () {
 cr () {
 	cm "$1" && ./$(stripc "$1")
 }
+cmi () {
+	p=$(pwd)
+	while [ "$p" != "/" ] && ! [ -x "$p/configure" ]; do
+		p=$(dirname "$p")
+	done
+	if [ "$p" == "/" ]; then
+		echo_error "Not in a project."
+		return 1
+	fi
+	cd "$p"
+	make clean 2>/dev/null
+	./configure && make && sudo make install && cd - && return 0
+	return 1
+}
 
 # tarsnap wrappers.
 # http://tarsnap.com
@@ -819,7 +837,7 @@ ts () {
 	local e=echo
 	inpath growlnotify && e="growlnotify -t tarsnap -m "
 	if [ $# -lt 1 ] || ! [ -e "$1" ]; then
-		$e "Need to supply a file/directory to back up" > /dev/stderr
+		$e "Need to supply a file/directory to back up" 1>&2
 		return 1
 	fi
 	if [ $# -gt 1 ]; then
