@@ -64,7 +64,7 @@ __set_path () {
 	done
 	export $var=$(p=$(echo $p); echo ${p// /:})
 }
-__set_path "PATH" "$HOME/bin:$HOME/scripts:$HOME/.homebrew/bin:$HOME/.homebrew/sbin:/home/y/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin"
+__set_path "PATH" "$HOME/bin:$HOME/scripts:$HOME/.homebrew/bin:$HOME/.homebrew/sbin:/home/y/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin:$HOME/.homebrew/Cellar/autoconf213/2.13/bin"
 
 __set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompressor/src"
 __set_path CDPATH ".:..:$HOME/dev:$HOME"
@@ -506,16 +506,16 @@ fi
 ls_cmd="ls$lscolor"
 __garbage ls_cmd
 alias ls="$ls_cmd"
-alias la="$ls_cmd -laF"
-alias lal="$ls_cmd -laFL"
-alias ll="$ls_cmd -lF"
+alias la="$ls_cmd -Flas"
+alias lal="$ls_cmd -FLlash"
+alias ll="$ls_cmd -Flsh"
 alias ag="alias | grep"
 fn () {
 	local func=$(declare -f "$1")
 	[ -z "$func" ] && echo_error "$1 is not a function" && return 1
 	echo $func && return 0
 }
-alias lg="$ls_cmd -laF | grep"
+alias lg="$ls_cmd -Flash | grep --color"
 alias chdir="cd"
 # alias more="less -e"
 export MANPAGER=more
@@ -547,7 +547,7 @@ fi
 alias yapr="$yapr"
 
 __garbage http_log
-http_log="$(choose_first /opt/local/var/log/lighttpd/error.log /home/y/logs/yapache/php-error /home/y/logs/yapache/error /home/y/logs/yapache/error_log /home/y/logs/yapache/us/error_log /home/y/logs/yapache/us/error /opt/local/apache2/logs/error_log /var/log/httpd/error_log /var/log/httpd/error)"
+http_log="$(choose_first /opt/local/var/log/lighttpd/error.log /home/y/logs/yapache/php-error /home/y/logs/yapache/error /home/y/logs/yapache/error_log /home/y/logs/yapache/us/error_log /home/y/logs/yapache/us/error /opt/local/apache2/logs/error_log /var/log/httpd/error_log /var/log/httpd/error /private/var/log/apache2/error_log)"
 yapl="tail -f $http_log | egrep -v '^E|udbClient'"
 alias yaprl="$yapr;$yapl"
 alias yapl="$yapl"
@@ -643,7 +643,8 @@ ypu () {
 alias gps="git push --all"
 
 gpm () {
-	git pull $1 master
+	git fetch -a $1
+	git merge $1/master
 }
 
 # look up a word
@@ -825,9 +826,19 @@ cmi () {
 		echo_error "Not in a project."
 		return 1
 	fi
-	cd "$p"
+	[ "$p" != "$PWD" ] && cd "$p"
 	make clean 2>/dev/null
-	./configure && make && sudo make install && cd - && return 0
+	./configure && make && sudo make install && ( [ "$p" != "$PWD" ] && cd - || true ) && return 0
+	return 1
+}
+
+# convert dmgs to isos
+dmg2iso () {
+	dmg="$1"
+	iso="${dmg%.dmg}.iso"
+	hdiutil convert "$dmg" -format UDTO -o "$iso" \
+		&& mv "$iso"{.cdr,} \
+		&& return 0
 	return 1
 }
 
