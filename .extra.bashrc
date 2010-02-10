@@ -2,13 +2,13 @@
 # .extra.bashrc - Isaac's Bash Extras
 # This file is designed to be a drop-in for any machine that I log into.
 # Currently, that means it has to work under Darwin, Ubuntu, and yRHEL
-# 
+#
 # Per-platform includes at the bottom, but most functionality is included
 # in this file, and forked based on resource availability.
-# 
+#
 # Functions are preferred over shell scripts, because then there's just
 # a few files to rsync over to a new host for me to use it comfortably.
-# 
+#
 # .extra_Darwin.bashrc has significantly more stuff, since my mac is also
 # a GUI environment, and my primary platform.
 ######
@@ -50,21 +50,25 @@ __garbage () {
 	fi
 }
 
+! [ -d $HOME/bin ] && mkdir $HOME/bin
 __garbage __set_path
 __set_path () {
 	local var="$1"
 	local p="$2"
-	
-	! [ -d $HOME/bin ] && mkdir $HOME/bin
+
 	local path_elements="${p//:/ }"
 	p=""
 	local i
 	for i in $path_elements; do
-		[ -d $i ] && p="$p$i "
+		[ "$(echo $p | egrep "(^| )$i")" == "" ] && [ -d $i ] && p="$p$i "
 	done
 	export $var=$(p=$(echo $p); echo ${p// /:})
 }
-__set_path "PATH" "$HOME/bin:$HOME/scripts:$HOME/.homebrew/bin:$HOME/.homebrew/sbin:/home/y/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin:$HOME/.homebrew/Cellar/autoconf213/2.13/bin"
+
+# homebrew="$HOME/.homebrew"
+homebrew="/usr/local"
+__garbage homebrew
+__set_path "PATH" "$HOME/bin:$HOME/scripts:$homebrew/bin:$homebrew/sbin:/home/y/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin:$homebrew/Cellar/autoconf213/2.13/bin:/usr/local/android:$homebrew/Cellar/gnutls/2.8.5/include"
 
 __set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompressor/src"
 __set_path CDPATH ".:..:$HOME/dev:$HOME"
@@ -308,9 +312,9 @@ if ! inpath md5 && inpath php; then
 	# careful on this next trick. The php code can *not* use single-quotes.
 	echo '<?php
 		// The BSD md5 checksum program, ported to PHP by Isaac Z. Schlueter
-		
+
 		exit main($argc, $argv);
-		
+
 		function /* int */ main ($argc, $argv) {
 			global $bin;
 			$return = true;
@@ -351,7 +355,7 @@ if ! inpath md5 && inpath php; then
 							$flag = $arg{0};
 							$arg = substr($arg, 1);
 							switch ($flag) {
-								case "s": 
+								case "s":
 									if ($arg) {
 										$actions["\"$arg\""] = "cksumString";
 										$arg = "";
@@ -444,7 +448,7 @@ if ! inpath md5 && inpath php; then
 			$f = in_array($flag, $flags) ? $flags[$flag] : ($flags[$flag] = false);
 			return ($set === null) ? $f : (($flags[$flag] = (bool)$set) || true) && $f;
 		}
-		
+
 		function usage ($option = "") {
 			global $bin;
 			if (!empty($option)) {
@@ -581,22 +585,7 @@ pushprof () {
 	return $failures
 }
 
-if [ $has_yinst -eq 1 ]; then
-	alias inst="yinst install"
-	alias yl="yinst ls"
-	yg () {
-		yinst ls | grep "$@"
-	}
-	ysg () {
-		yinst set | grep "$@"
-	}
-elif inpath brew; then
-	alias inst="brew install"
-	alias yl="brew list"
-	yg () {
-		brew list | grep "$@"
-	}
-elif inpath port; then
+if inpath port; then
 	alias inst="sudo port install"
 	alias yl="port list installed"
 	yg () {
@@ -610,6 +599,12 @@ elif inpath port; then
 			sudo port install $i
 		done
 	}
+elif inpath brew; then
+	alias inst="brew install"
+	alias yl="brew list"
+	yg () {
+		brew list | grep "$@"
+	}
 elif inpath apt-get; then
 	alias inst="sudo apt-get install"
 	alias yl="dpkg --list | egrep '^ii'"
@@ -619,7 +614,10 @@ elif inpath apt-get; then
 	alias upup="sudo apt-get update && sudo apt-get upgrade"
 fi
 alias gci="git commit"
-alias gpu="git pull"
+gpu () {
+	git fetch -a origin
+	git merge origin/master
+}
 ghadd () {
 	local me="$(git config --get github.user)"
 	[ "$me" == "" ] && echo "Please enter your github name as the github.user git config." && return 1
@@ -643,8 +641,11 @@ ypu () {
 alias gps="git push --all"
 
 gpm () {
+	local s
+	s=$(git stash)
 	git fetch -a $1
-	git merge $1/master
+	git pull --rebase $1 master
+	[ "$s" != "No local changes to save" ] && git stash pop
 }
 
 # look up a word
@@ -706,7 +707,7 @@ macs () {
 ! [ "${__title}" ] && __title=''
 __settitle () {
 	__title="$1"
-	
+
 	if [ "$YROOT_NAME" != "" ]; then
 		if [ "${__title}" != "" ]; then
 			TITLE="$YROOT_NAME — ${__title}"
@@ -717,8 +718,8 @@ __settitle () {
 		TITLE=${__title}
 	fi
 	local gittitle=$( __git_ps1 "%s — " 2>/dev/null )
-	
-	
+
+
 	DIR=${PWD/$HOME/\~}
 	DIR=${DIR/~\/Documents\/src/~\/dev}
 	local t=""
@@ -748,10 +749,10 @@ __settitle "${__title}"
 echo ""
 [ -x ./configure ] && echo -ne "\033[42m\033[1;30m→\033[m"
 [ "$TITLE" ] && echo -ne "\033[${__color}m\033[${__bg}m $TITLE \033[0m"
-echo -ne "$(__git_ps1 "\033[41m\033[37m %s \033[0m")"
+echo -ne "$(__git_ps1 "\033[41m\033[37m %s \033[0m" 2>/dev/null)"
 echo -ne "\033[40m\033[37m$(whoami)@${HOSTNAME_FIRSTPART}\033[0m:$DIR"'
 #this part gets repeated when you tab to see options
-PS1="\n[\t \!] \\$ "
+PS1="\n[\t] \\$ "
 
 # view processes.
 alias processes="ps axMuc | egrep '^[a-zA-Z0-9]'"
@@ -762,8 +763,6 @@ pid () {
 	pg "$@" | awk '{print $2}'
 }
 
-alias v="ssh visitbread.corp.yahoo.com"
-alias vm="ssh visitbread-vm0.corp.yahoo.com"
 alias fh="ssh foohack.com"
 alias p="ssh isaacs.xen.prgmr.com"
 alias st="ssh sistertrain.com"
@@ -817,7 +816,8 @@ cm () {
 cr () {
 	cm "$1" && ./$(stripc "$1")
 }
-cmi () {
+cmi () { m cmi && return 0 || return 1; }
+m () {
 	p=$(pwd)
 	while [ "$p" != "/" ] && ! [ -x "$p/configure" ]; do
 		p=$(dirname "$p")
@@ -827,10 +827,11 @@ cmi () {
 		return 1
 	fi
 	[ "$p" != "$PWD" ] && cd "$p"
-	make clean 2>/dev/null
-	./configure && make && sudo make install && ( [ "$p" != "$PWD" ] && cd - || true ) && return 0
+	[ "$1" == "cmi" ] && sudo make clean 2>/dev/null
+	( [ "$1" == "cmi" ] && ./configure || true) && make && sudo make install && ( [ "$p" != "$PWD" ] && cd - || true ) && return 0
 	return 1
 }
+
 
 # convert dmgs to isos
 dmg2iso () {
