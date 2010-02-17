@@ -613,11 +613,13 @@ elif inpath apt-get; then
 	}
 	alias upup="sudo apt-get update && sudo apt-get upgrade"
 fi
+
+# git stuff
+export GIT_COMMITTER_NAME=isaacs
+export GIT_COMMITTER_EMAIL=i@izs.me
+export GIT_AUTHOR_NAME=isaacs
+export GIT_AUTHOR_EMAIL=i@izs.me
 alias gci="git commit"
-gpu () {
-	git fetch -a origin
-	git merge origin/master
-}
 ghadd () {
 	local me="$(git config --get github.user)"
 	[ "$me" == "" ] && echo "Please enter your github name as the github.user git config." && return 1
@@ -632,19 +634,25 @@ ghadd () {
 	local theirs="git://github.com/$who/$repo"
 	git remote add "$nick" "$theirs"
 }
-yup () { ypu; }
-ypu () {
-	for i in build upstream; do
-		git fetch -v $i
-	done
-}
 alias gps="git push --all"
 
-gpm () {
+# a context-sensitive rebasing git pull.
+# usage:
+# ghadd someuser  # add the github remote account
+# git checkout somebranch
+# gpm someuser    # similar to "git pull someuser somebranch"
+# Remote branch is rebased, and local changes stashed and reapplied if possible.
+gp () {
 	local s
-	s=$(git stash)
+	local head
+	s=$(git stash 2>/dev/null)
+	head=$(basename $(git symbolic-ref HEAD 2>/dev/null) 2>/dev/null)
+	if [ "" == "$head" ]; then
+		echo_error "Not on a branch, can't pull"
+		return 1
+	fi
 	git fetch -a $1
-	git pull --rebase $1 master
+	git pull --rebase $1 "$head"
 	[ "$s" != "No local changes to save" ] && git stash pop
 }
 
@@ -687,7 +695,7 @@ ips () {
 macs () {
 	local interface=""
 	local i
-	local types='vmnet|en|eth'
+	local types='vmnet|en|eth|vboxnet'
 	for i in $(
 		ifconfig \
 		| egrep -o '(^('$types')[0-9]:|ether ([0-9a-f]{2}:){5}[0-9a-f]{2})' \
