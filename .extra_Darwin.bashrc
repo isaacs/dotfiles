@@ -70,7 +70,7 @@ update_webkit () {
 	local rev=$( cat /Applications/WebKit.app/Contents/Resources/VERSION )
 	local url=$( curl --silent http://nightly.webkit.org/builds/trunk/mac/latest | egrep "http://.*WebKit-SVN-r[0-9]+.dmg" -o | head -n 1 )
 	local latest=$( echo $url | egrep '[0-9]{4,}' -o )
-	if [ "$latest" != "" ]; then
+	if [ "$latest" == "" ]; then
 		echo "Couldn't get latest WebKit revision" > /dev/stderr
 		return 1
 	fi
