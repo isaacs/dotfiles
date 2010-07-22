@@ -68,12 +68,37 @@ __set_path () {
 # homebrew="$HOME/.homebrew"
 homebrew="/usr/local"
 __garbage homebrew
-__set_path "PATH" "$HOME/bin:$HOME/scripts:$homebrew/bin:$homebrew/sbin:/home/y/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin:$homebrew/Cellar/autoconf213/2.13/bin:/usr/local/android:$homebrew/Cellar/gnutls/2.8.5/include"
+__set_path PATH "$PATH:$HOME/bin:$HOME/scripts:/usr/local/nginx/sbin:/opt/PalmSDK/Current/bin:$homebrew/bin:$homebrew/sbin:/opt/kakai/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin:$homebrew/Cellar/autoconf213/2.13/bin:/usr/local/android:$homebrew/Cellar/gnutls/2.8.5/include:/Users/isaacs/.gem/ruby/1.8/bin"
+
+__set_path LD_LIBRARY_PATH "$homebrew/lib:/opt/kakai/lib:/usr/lib"
+__set_path PKG_CONFIG_PATH "$homebrew/lib/pkgconfig:/opt/kakai/lib/pkgconfig:/opt/local/lib/pkgconfig:/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig:/usr/lib/pkgconfig"
+export KAKAI_DISABLE_HISTORY=true
+export DB_FOLDER=$HOME/.local/share/webkit/databases/http_localhost_0
+export DB_FILE=0000000000000001.db
 
 __set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompressor/src"
 __set_path CDPATH ".:..:$HOME/dev:$HOME"
-__set_path NODE_PATH "$HOME/.node_libraries:$HOME/.npm:$HOME/dev/js/node/lib:/usr/local/lib/node_libraries:$HOME/dev/js/node-glob/build/default"
+# __set_path NODE_PATH "$HOME/.node_libraries:$HOME/dev/js/node/lib:$homebrew/lib/node_libraries:$HOME/dev/js/node-glob/build/default"
+
 __set_path PYTHONPATH "$HOME/dev/js/node/deps/v8/tools/:$HOME/dev/js/node/tools"
+
+jsreg () {
+	local pid=$(cat ~/.jsregpid)
+	if [ "$pid" ]; then
+		echo kill $pid
+		kill $pid
+		if [ "$?" == 0 ]; then
+      sleep 1
+      echo "" > ~/.jsregpid
+		fi
+	fi
+	if [ "$1" == "kill" ]; then
+		return 0
+	fi
+	ssh -N -L 5984:localhost:5984 izs.me &
+	echo $! > ~/.jsregpid
+	disown
+}
 
 # fail if the file is not an executable in the path.
 inpath () {
@@ -94,7 +119,7 @@ if [ -z "$BASH_COMPLETION_DIR" ]; then
 	[ -f /etc/bash_completion ] && . /etc/bash_completion
 fi
 
-alias js="rlwrap node-repl"
+alias js="NODE_NO_READLINE=1 rlwrap node-repl"
 
 
 
@@ -134,9 +159,19 @@ hist () {
 		| uniq -f 2 -u
 }
 
-alias cd=pushd
-alias ..="pushd .."
-alias -- -="popd"
+# A little hack to add forward-and-back traversal with cd
+c () {
+	local a
+	alias cd="cd"
+	a="$(godir.php "$@")"
+	[ "$a" != "" ] && eval $a
+	alias cd="c"
+}
+alias cd="c"
+alias ..="c .."
+alias -- -="c -1"
+alias -- _="c +1"
+alias s="c --show"
 
 # read a line from stdin, write to stdout.
 getln () { read "$@" t && echo $t; }
@@ -230,10 +265,6 @@ export RSYNC_RSH=$(choose_first yssh ssh)
 export INPUTRC=$HOME/.inputrc
 # export POSIXLY_CORRECT=1
 
-__garbage has_yinst
-has_yinst=0
-inpath yinst && has_yinst=1
-
 # useful commands:
 __get_edit_cmd () {
 	echo "$( choose_first "$@" )"
@@ -241,6 +272,7 @@ __get_edit_cmd () {
 # my list of editors, by preference.
 __edit_cmd="$( __get_edit_cmd mate vim vi pico ed )"
 alias edit="${__edit_cmd}"
+alias e="${__edit_cmd} ."
 alias sued="sudo ${__edit_cmd}"
 export EDITOR="$( choose_first ${__edit_cmd}_wait ${__edit_cmd} )"
 export VISUAL="$EDITOR"
@@ -534,8 +566,12 @@ wi () {
 alias tree="tree -CFa -I 'rhel.*.*.package|.git' --dirsfirst"
 
 __garbage yapr
-if [ $has_yinst -eq 1 ]; then
-	yapr="yinst restart yapache"
+if [ -f /etc/init.d/nginx ]; then
+	yapr="sudo /etc/init.d/nginx restart"
+elif inpath nginx; then
+	yapr="sudo nginx -s reload"
+elif inpath lighttpd-angel; then
+	yapr="sudo lighttpd-angel -f /usr/local/etc/lighttpd/lighttpd.conf restart"
 elif inpath lighttpd.wrapper; then
 	yapr="sudo lighttpd.wrapper restart"
 elif [ -f /etc/init.d/lighttpd ]; then
@@ -546,7 +582,7 @@ elif inpath apachectl; then
 	yapr="sudo apachectl graceful"
 else
 	# very strange!
-	yapr="echo Looks like lighttpd and apache are not installed."
+	yapr="echo Looks like nginx, lighttpd, and apache are not installed."
 fi
 alias yapr="$yapr"
 
@@ -620,6 +656,8 @@ export GIT_COMMITTER_EMAIL=i@izs.me
 export GIT_AUTHOR_NAME=isaacs
 export GIT_AUTHOR_EMAIL=i@izs.me
 alias gci="git commit"
+alias gst="git status"
+alias glg="git lg"
 ghadd () {
 	local me="$(git config --get github.user)"
 	[ "$me" == "" ] && echo "Please enter your github name as the github.user git config." && return 1
@@ -629,12 +667,17 @@ ghadd () {
 	local nick="$1"
 	local who="$2"
 	[ "$who" == "" ] && who="$nick"
-	[ "$who" == "" ] && echo "Whose repo do you want to add?" && return 1
+	[ "$who" == "" ] && ( echo "usage: ghadd [nick] <who>" >&2 ) && return 1
 	# eg: git://github.com/isaacs/jack.git
 	local theirs="git://github.com/$who/$repo"
 	git remote add "$nick" "$theirs"
 }
-alias gps="git push --all"
+alias gpa="git push --all"
+alias gpt="git push --tags"
+gps () {
+	gpa "$@"
+	gpt "$@"
+}
 
 # a context-sensitive rebasing git pull.
 # usage:
@@ -642,6 +685,7 @@ alias gps="git push --all"
 # git checkout somebranch
 # gpm someuser    # similar to "git pull someuser somebranch"
 # Remote branch is rebased, and local changes stashed and reapplied if possible.
+alias gpm=gp
 gp () {
 	local s
 	local head
@@ -711,54 +755,17 @@ macs () {
 
 # set the bash prompt and the title function
 
-! [ "$TITLE" ] && TITLE=''
-! [ "${__title}" ] && __title=''
-__settitle () {
-	__title="$1"
-
-	if [ "$YROOT_NAME" != "" ]; then
-		if [ "${__title}" != "" ]; then
-			TITLE="$YROOT_NAME — ${__title}"
-		else
-			TITLE="$YROOT_NAME"
-		fi
-	else
-		TITLE=${__title}
-	fi
-	local gittitle=$( __git_ps1 "%s — " 2>/dev/null )
-
-
-	DIR=${PWD/$HOME/\~}
-	DIR=${DIR/~\/Documents\/src/~\/dev}
-	local t=""
-	[ "$TITLE" != "" ] && t="$TITLE — "
-	echo -ne "\033]0;$gittitle$t${HOSTNAME_FIRSTPART%%\.*}:$DIR\007"
-}
-title () {
-	if [ ${#@} == 1 ]; then
-		__settitle "$@"
-	else
-		echo "$TITLE"
-	fi
-}
-
-#show the short hostname, selected title, and yroot, and update them all on each prompt
-export HOSTNAME=$(uname -n);
-export HOSTNAME_FIRSTPART=${HOSTNAME%\.yahoo\.com};
-export __arch=$(uname)
-export __bg=$([ ${__arch} == "Darwin" ] && echo 44 || echo 42)
-export __color=$([ ${__arch} == "Darwin" ] && echo 1 || echo 30)
-__garbage __arch
-export HOSTNAME=$(uname -n)
-export HOSTNAME_FIRSTPART=${HOSTNAME%\.yahoo\.com}
-
+# export __bg=$([ $(uname) == "Darwin" ] && echo 40 || echo 42)
+# export __color=$([ $(uname) == "Darwin" ] && echo 37 || echo 30)
+# 
 PROMPT_COMMAND='history -a
-__settitle "${__title}"
-echo ""
-[ -x ./configure ] && echo -ne "\033[42m\033[1;30m→\033[m"
-[ "$TITLE" ] && echo -ne "\033[${__color}m\033[${__bg}m $TITLE \033[0m"
+echo "         "
+DIR=${PWD/$HOME/\~}
+DIR=${DIR/~\/Documents\/src/~\/dev}
+echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
+if [ -x ./configure ] || [ -d ./.git ]; then echo -ne "\033[42m\033[1;30m→\033[m"; fi
 echo -ne "$(__git_ps1 "\033[41m\033[37m %s \033[0m" 2>/dev/null)"
-echo -ne "\033[40m\033[37m$(whoami)@${HOSTNAME_FIRSTPART}\033[0m:$DIR"'
+echo -ne "\033[40m\033[37m$(whoami)@\033[$([ ${HOSTNAME:0:14} == "sistertrain-lm" ] && echo 40 || echo 42)m\033[$([ ${HOSTNAME:0:14} == "sistertrain-lm" ] && echo 37 || echo 30)m$(uname -n)\033[0m:$DIR"'
 #this part gets repeated when you tab to see options
 PS1="\n[\t] \\$ "
 
@@ -771,9 +778,10 @@ pid () {
 	pg "$@" | awk '{print $2}'
 }
 
-alias fh="ssh foohack.com"
+alias fh="ssh izs.me"
 alias p="ssh isaacs.xen.prgmr.com"
 alias st="ssh sistertrain.com"
+
 
 # shorthand for checking on ssh agents.
 sshagents () {
@@ -903,7 +911,6 @@ arch=$(uname -s)
 machinearch=$(uname -m)
 [ -f $HOME/.extra_$arch.bashrc ] && . $HOME/.extra_$arch.bashrc
 [ -f $HOME/.extra_${arch}_${machinearch}.bashrc ] && . $HOME/.extra_${arch}_${machinearch}.bashrc
-[ $has_yinst == 1 ] && [ -f $HOME/.extra_yinst.bashrc ] && . $HOME/.extra_yinst.bashrc
 inpath "git" && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
 
 # call in the cleaner.
