@@ -678,6 +678,14 @@ gps () {
 	gpa "$@"
 	gpt "$@"
 }
+# Look up any ref's sha, and also copy it for pasting into bugs and such
+gsh () {
+	local sha
+	sha=$(git show ${1-HEAD} | head -n1 | awk '{print $2}' | xargs echo -n)
+	echo -n $sha | pbcopy
+	echo $sha
+}
+alias ngr="npm config get root"
 
 # a context-sensitive rebasing git pull.
 # usage:
@@ -763,6 +771,7 @@ echo "         "
 DIR=${PWD/$HOME/\~}
 DIR=${DIR/~\/Documents\/src/~\/dev}
 echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
+if [ "$NAVE" != "" ]; then echo -ne "\033[44m $NAVE \033[m"; fi
 if [ -x ./configure ] || [ -d ./.git ]; then echo -ne "\033[42m\033[1;30m→\033[m"; fi
 echo -ne "$(__git_ps1 "\033[41m\033[37m %s \033[0m" 2>/dev/null)"
 echo -ne "\033[40m\033[37m$(whoami)@\033[$([ ${HOSTNAME:0:14} == "sistertrain-lm" ] && echo 40 || echo 42)m\033[$([ ${HOSTNAME:0:14} == "sistertrain-lm" ] && echo 37 || echo 30)m$(uname -n)\033[0m:$DIR"'
