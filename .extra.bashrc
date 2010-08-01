@@ -88,8 +88,8 @@ jsreg () {
 		echo kill $pid
 		kill $pid
 		if [ "$?" == 0 ]; then
-      sleep 1
-      echo "" > ~/.jsregpid
+			sleep 1
+			echo "" > ~/.jsregpid
 		fi
 	fi
 	if [ "$1" == "kill" ]; then
