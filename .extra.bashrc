@@ -68,7 +68,7 @@ __set_path () {
 # homebrew="$HOME/.homebrew"
 homebrew="/usr/local"
 __garbage homebrew
-__set_path PATH "$PATH:$HOME/bin:$HOME/scripts:/usr/local/nginx/sbin:/opt/PalmSDK/Current/bin:$homebrew/bin:$homebrew/sbin:/opt/kakai/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin:$homebrew/Cellar/autoconf213/2.13/bin:/usr/local/android:$homebrew/Cellar/gnutls/2.8.5/include:/Users/isaacs/.gem/ruby/1.8/bin"
+__set_path PATH "$PATH:$HOME/bin:$HOME/scripts:$HOME/node/bin:/usr/nodejs/bin/:/usr/local/nginx/sbin:/opt/PalmSDK/Current/bin:$homebrew/bin:$homebrew/sbin:/opt/kakai/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin:$homebrew/Cellar/autoconf213/2.13/bin:/usr/local/android:$homebrew/Cellar/gnutls/2.8.5/include:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin"
 
 __set_path LD_LIBRARY_PATH "$homebrew/lib:/opt/kakai/lib:/usr/lib"
 __set_path PKG_CONFIG_PATH "$homebrew/lib/pkgconfig:/opt/kakai/lib/pkgconfig:/opt/local/lib/pkgconfig:/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig:/usr/lib/pkgconfig"
@@ -160,18 +160,24 @@ hist () {
 }
 
 # A little hack to add forward-and-back traversal with cd
-c () {
-	local a
-	alias cd="cd"
-	a="$(godir.php "$@")"
-	[ "$a" != "" ] && eval $a
-	alias cd="c"
-}
-alias cd="c"
-alias ..="c .."
-alias -- -="c -1"
-alias -- _="c +1"
-alias s="c --show"
+if inpath php; then
+  c () {
+  	local a
+  	alias cd="cd"
+  	a="$(godir.php "$@")"
+  	[ "$a" != "" ] && eval $a
+  	alias cd="c"
+  }
+  alias cd="c"
+  alias ..="c .."
+  alias -- -="c -1"
+  alias -- _="c +1"
+  alias s="c --show"
+else
+  alias ..="cd .."
+  alias -- -="cd -"
+fi
+
 
 # read a line from stdin, write to stdout.
 getln () { read "$@" t && echo $t; }
@@ -656,6 +662,7 @@ export GIT_COMMITTER_EMAIL=i@izs.me
 export GIT_AUTHOR_NAME=isaacs
 export GIT_AUTHOR_EMAIL=i@izs.me
 alias gci="git commit"
+alias gap="git add -p"
 alias gst="git status"
 alias glg="git lg"
 ghadd () {
@@ -686,6 +693,9 @@ gsh () {
 	echo $sha
 }
 alias ngr="npm config get root"
+rmnpm () {
+  rm -rf {$(npm config get binroot),$(npm config get root)}/{.npm/,}npm*
+}
 
 # a context-sensitive rebasing git pull.
 # usage:
@@ -774,7 +784,7 @@ echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
 if [ "$NAVE" != "" ]; then echo -ne "\033[44m $NAVE \033[m"; fi
 if [ -x ./configure ] || [ -d ./.git ]; then echo -ne "\033[42m\033[1;30m→\033[m"; fi
 echo -ne "$(__git_ps1 "\033[41m\033[37m %s \033[0m" 2>/dev/null)"
-echo -ne "\033[40m\033[37m$(whoami)@\033[$([ ${HOSTNAME:0:14} == "sistertrain-lm" ] && echo 40 || echo 42)m\033[$([ ${HOSTNAME:0:14} == "sistertrain-lm" ] && echo 37 || echo 30)m$(uname -n)\033[0m:$DIR"'
+echo -ne "\033[40m\033[37m$USER@\033[$([ ${HOSTNAME:0:14} == "sistertrain-lm" ] && echo 40 || echo 42)m\033[$([ ${HOSTNAME:0:14} == "sistertrain-lm" ] && echo 37 || echo 30)m$(uname -n)\033[0m:$DIR"'
 #this part gets repeated when you tab to see options
 PS1="\n[\t] \\$ "
 

@@ -6,7 +6,6 @@
 	df = diff
 	lg = log --graph --pretty=format:'%Cred%h%Creset %C(yellow)%an%d%Creset %s %Cgreen(%cr)%Creset' --date=relative
 	lo = log --oneline
-	pu = !"git fetch origin; git fetch upstream; git merge upstream/master"
 [branch.master]
 	mergeoptions = log
 [color]
@@ -25,4 +24,12 @@
 [color "status"]
 	added = yellow
 	changed = green
-	untracked = cyan
+[user]
+	name = isaacs
+	email = i@izs.me
+	signingkey = 0x6C481CF6
+[diff]
+[difftool]
+	prompt = false
+[github]
+	user = isaacs
