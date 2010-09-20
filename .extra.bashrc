@@ -68,7 +68,7 @@ __set_path () {
 # homebrew="$HOME/.homebrew"
 homebrew="/usr/local"
 __garbage homebrew
-__set_path PATH "$PATH:$HOME/bin:$HOME/scripts:$HOME/node/bin:/usr/nodejs/bin/:/usr/local/nginx/sbin:/opt/PalmSDK/Current/bin:$homebrew/bin:$homebrew/sbin:/opt/kakai/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin:$homebrew/Cellar/autoconf213/2.13/bin:/usr/local/android:$homebrew/Cellar/gnutls/2.8.5/include:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin"
+__set_path PATH "$PATH:$HOME/bin:$HOME/local/bin:$HOME/scripts:$HOME/node/bin:/usr/nodejs/bin/:/usr/local/nginx/sbin:/opt/PalmSDK/Current/bin:$homebrew/bin:$homebrew/sbin:/opt/kakai/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin:$homebrew/Cellar/autoconf213/2.13/bin:/usr/local/android:$homebrew/Cellar/gnutls/2.8.5/include:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin"
 
 __set_path LD_LIBRARY_PATH "$homebrew/lib:/opt/kakai/lib:/usr/lib"
 __set_path PKG_CONFIG_PATH "$homebrew/lib/pkgconfig:/opt/kakai/lib/pkgconfig:/opt/local/lib/pkgconfig:/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig:/usr/lib/pkgconfig"
@@ -119,7 +119,11 @@ if [ -z "$BASH_COMPLETION_DIR" ]; then
 	[ -f /etc/bash_completion ] && . /etc/bash_completion
 fi
 
-alias js="NODE_NO_READLINE=1 rlwrap node-repl"
+if inpath rlwrap; then
+  alias js="NODE_NO_READLINE=1 rlwrap node"
+else
+  alias js=node
+fi
 
 
 
@@ -160,7 +164,7 @@ hist () {
 }
 
 # A little hack to add forward-and-back traversal with cd
-if inpath php; then
+if inpath php && inpath godir.php; then
   c () {
   	local a
   	alias cd="cd"
@@ -279,6 +283,9 @@ __get_edit_cmd () {
 __edit_cmd="$( __get_edit_cmd mate vim vi pico ed )"
 alias edit="${__edit_cmd}"
 alias e="${__edit_cmd} ."
+ew () {
+  edit $(which $1)
+}
 alias sued="sudo ${__edit_cmd}"
 export EDITOR="$( choose_first ${__edit_cmd}_wait ${__edit_cmd} )"
 export VISUAL="$EDITOR"
@@ -657,10 +664,12 @@ elif inpath apt-get; then
 fi
 
 # git stuff
-export GIT_COMMITTER_NAME=isaacs
-export GIT_COMMITTER_EMAIL=i@izs.me
-export GIT_AUTHOR_NAME=isaacs
-export GIT_AUTHOR_EMAIL=i@izs.me
+export GITHUB_TOKEN=$(git config --get github.token)
+export GITHUB_USER=$(git config --get github.user)
+export GIT_COMMITTER_NAME=$(git config --get github.user)
+export GIT_COMMITTER_EMAIL=$(git config --get user.email)
+export GIT_AUTHOR_NAME=$(git config --get user.name)
+export GIT_AUTHOR_EMAIL=$(git config --get user.email)
 alias gci="git commit"
 alias gap="git add -p"
 alias gst="git status"

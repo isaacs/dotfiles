@@ -7,10 +7,7 @@
 "\e[C": forward-char
 "\e[D": backward-char
 
-# Trying to make ctrl-(right|left) skip through words.
-# This doesn't work, not sure why.
-# "\C-\e[C": forward-word
-# "\C-\e[D": backward-word
+"\M-d": backward-kill-word
 
 # Make it show more useful info.
 set completion-ignore-case on

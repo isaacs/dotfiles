@@ -31,5 +31,3 @@
 [diff]
 [difftool]
 	prompt = false
-[github]
-	user = isaacs
