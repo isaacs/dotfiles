@@ -170,6 +170,7 @@ if inpath php && inpath godir.php; then
   	alias cd="cd"
   	a="$(godir.php "$@")"
   	[ "$a" != "" ] && eval $a
+  	[ -f .DS_Store ] && rm .DS_Store
   	alias cd="c"
   }
   alias cd="c"
@@ -788,7 +789,6 @@ macs () {
 PROMPT_COMMAND='history -a
 echo "         "
 DIR=${PWD/$HOME/\~}
-DIR=${DIR/~\/Documents\/src/~\/dev}
 echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
 if [ "$NAVE" != "" ]; then echo -ne "\033[44m $NAVE \033[m"; fi
 if [ -x ./configure ] || [ -d ./.git ]; then echo -ne "\033[42m\033[1;30m→\033[m"; fi
