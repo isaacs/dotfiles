@@ -113,16 +113,21 @@ __git_ps1 ()
 		b="${b##refs/heads/}"
 		local n
 		if n=$(git config --get remote.origin.url 2>/dev/null \
-				| sed 's|^git@||' \
-				| sed 's|\.com\:|:|' \
-				| sed 's|^git\.||' \
-				| sed 's|\.git$||' \
-				| sed 's|^github:|gh:|' \
-				| sed 's|^joyent:|j:|' \
-				| sed 's|:isaacs/|:|' \
+				| sed -e 's|^git@||' \
+				      -e 's|\.com\:|:|' \
+				      -e 's|^git\.||' \
+				      -e 's|\.git$||' \
+				      -e 's|^github:|gh:|' \
+				      -e 's|^joyent:|j:|' \
+				      -e 's|^node@|n:|' \
+				      -e 's|:isaacs/|:|' \
+				      -e 's|.no.de:repo$||' \
 				2>/dev/null )
 		then
-			b="${n##:}/$b"
+		  if [ "$n" == "" ]; then
+		    n=$(basename $PWD)
+		  fi
+			b="$n/$b"
 		fi
 		
 		if [ -n "$1" ]; then
