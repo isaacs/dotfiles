@@ -60,7 +60,7 @@ __set_path () {
 	p=""
 	local i
 	for i in $path_elements; do
-		[ "$(echo $p | egrep "(^| )$i")" == "" ] && [ -d $i ] && p="$p$i "
+		[ "$(echo $p | egrep "(^| )$i($| )")" == "" ] && [ -d $i ] && p="$p$i "
 	done
 	export $var=$(p=$(echo $p); echo ${p// /:})
 }
@@ -68,16 +68,14 @@ __set_path () {
 # homebrew="$HOME/.homebrew"
 homebrew="/usr/local"
 __garbage homebrew
-__set_path PATH "$PATH:$HOME/bin:$HOME/local/bin:$HOME/scripts:$HOME/node/bin:/usr/nodejs/bin/:/usr/local/nginx/sbin:/opt/PalmSDK/Current/bin:$homebrew/bin:$homebrew/sbin:/opt/kakai/bin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin:$homebrew/Cellar/autoconf213/2.13/bin:/usr/local/android:$homebrew/Cellar/gnutls/2.8.5/include:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin"
+__set_path PATH "$HOME/bin:$HOME/local/bin:$HOME/scripts:$HOME/node/bin:/usr/nodejs/bin/:/usr/local/nginx/sbin:/opt/PalmSDK/Current/bin:$homebrew/bin:$homebrew/sbin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin:$homebrew/Cellar/autoconf213/2.13/bin:/usr/local/android:$homebrew/Cellar/gnutls/2.8.5/include:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin:$PATH"
 
-__set_path LD_LIBRARY_PATH "$homebrew/lib:/opt/kakai/lib:/usr/lib"
-__set_path PKG_CONFIG_PATH "$homebrew/lib/pkgconfig:/opt/kakai/lib/pkgconfig:/opt/local/lib/pkgconfig:/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig:/usr/lib/pkgconfig"
-export KAKAI_DISABLE_HISTORY=true
-export DB_FOLDER=$HOME/.local/share/webkit/databases/http_localhost_0
-export DB_FILE=0000000000000001.db
+__set_path LD_LIBRARY_PATH "$homebrew/lib:/usr/lib"
+__set_path PKG_CONFIG_PATH "$homebrew/lib/pkgconfig:/opt/local/lib/pkgconfig:/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig:/usr/lib/pkgconfig"
 
 __set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompressor/src"
-__set_path CDPATH ".:..:$HOME/dev:$HOME"
+__set_path CDPATH ".:..:$HOME/dev:$HOME/dev/js:$HOME"
+
 # __set_path NODE_PATH "$HOME/.node_libraries:$HOME/dev/js/node/lib:$homebrew/lib/node_libraries:$HOME/dev/js/node-glob/build/default"
 
 __set_path PYTHONPATH "$HOME/dev/js/node/deps/v8/tools/:$HOME/dev/js/node/tools"
@@ -119,13 +117,7 @@ if [ -z "$BASH_COMPLETION_DIR" ]; then
 	[ -f /etc/bash_completion ] && . /etc/bash_completion
 fi
 
-if inpath rlwrap; then
-  alias js="NODE_NO_READLINE=1 rlwrap node"
-else
-  alias js=node
-fi
-
-
+alias js="NODE_READLINE_SEARCH=1 node"
 
 # Use UTF-8, and throw errors in PHP and Perl if it's not available.
 # Note: this is VERY obnoxious if UTF8 is not available!
@@ -281,7 +273,7 @@ __get_edit_cmd () {
 	echo "$( choose_first "$@" )"
 }
 # my list of editors, by preference.
-__edit_cmd="$( __get_edit_cmd mate vim vi pico ed )"
+__edit_cmd="$( __get_edit_cmd vim mate vi pico ed )"
 alias edit="${__edit_cmd}"
 alias e="${__edit_cmd} ."
 ew () {
@@ -348,185 +340,6 @@ pickrand () {
 		[ $tst "$i" ] && let 'cnt += 1' && [ $cnt -eq $p ] && echo "$i" && return
 	done
 }
-
-# md5 from the command line
-# I like the BSD/Darwin "md5" util a bit better than md5sum flavor.
-# Ported here to always have it.
-# Yeah, that's right.  My bash profile has a PHP program embedded
-# inside. You wanna fight about it?
-if ! inpath md5 && inpath php; then
-	# careful on this next trick. The php code can *not* use single-quotes.
-	echo '<?php
-		// The BSD md5 checksum program, ported to PHP by Isaac Z. Schlueter
-
-		exit main($argc, $argv);
-
-		function /* int */ main ($argc, $argv) {
-			global $bin;
-			$return = true;
-			$bin = basename( array_shift($argv) );
-			$return = 0;
-			foreach (parseargs($argv, $argc) as $target => $action) {
-				// echo "$action($target)\n";
-				if ( !$action( $target ) ) {
-					$return ++;
-				}
-			}
-			// convert to bash success/failure flag
-			return $return;
-		}
-
-		function parseargs ($argv, $argc) {
-			$actions = array();
-			$getstring = false;
-			$needstdin = true;
-			foreach ($argv as $arg) {
-				// echo "arg: $arg\n";
-				if ($getstring) {
-					$getstring = false;
-					$actions[ "\"$arg\"" ] = "cksumString";
-					continue;
-				}
-				if ($arg[0] !== "-") {
-					// echo "setting $arg to cksumFile\n";
-					$needstdin = false;
-					$actions[$arg] = "cksumFile";
-				} else {
-					// is a flag
-					$arg = substr($arg, 1);
-					if (strlen($arg) === 0) {
-						$actions["-"] = "cksumFile";
-					} else {
-						while (strlen($arg)) {
-							$flag = $arg{0};
-							$arg = substr($arg, 1);
-							switch ($flag) {
-								case "s":
-									if ($arg) {
-										$actions["\"$arg\""] = "cksumString";
-										$arg = "";
-									} else {
-										$getstring = true;
-									}
-									$needstdin = false;
-								break;
-								case "p": $actions[] = "cksumStdinPrint"; $needstdin = false; break;
-								case "q": flag("quiet", true); break;
-								case "r": flag("reverse",true); break;
-								case "t": $actions["timeTrial"] = "timeTrial"; $needstdin = false; break;
-								case "x": $actions["runTests"] = "runTests"; $needstdin = false; break;
-								default : $actions["$flag"] = "usage"; $needstdin = false; break;
-							} // switch
-						} // while
-					} // strlen($arg)
-				}
-			} // end foreach
-			if ($getstring) {
-				global $bin;
-				// exited without getting a string!
-				error_log("$bin: option requires an argument -- s");
-				usage();
-			}
-			if ($needstdin) {
-				$actions[] = "cksumStdin";
-			}
-			return $actions;
-		}
-
-		/*
-		-s string
-			Print a checksum of the given string.
-		-p
-			Echo stdin to stdout and appends the MD5 sum to stdout.
-		-q
-			Quiet mode - only the MD5 sum is printed out.  Overrides the -r option.
-		-r
-			Reverses the format of the output.  This helps with visual diffs.
-			Does nothing when combined with the -ptx options.
-		-t
-			Run a built-in time trial.
-		-x
-			Run a built-in test script.
-		*/
-
-		function cksumFile ($file) {
-			$missing = !file_exists($file);
-			$isdir = $missing ? 0 : is_dir($file); // only call if necessary
-			if ( $missing || $isdir ) {
-				global $bin;
-				error_log("$bin: $file: " . ($missing ? "No such file or directory" : "is a directory."));
-				// echo "bout to return\n";
-				return false;
-			}
-			output("MD5 (%s) = %s", $file, md5(file_get_contents($file)));
-		}
-		function cksumStdin () {
-			$stdin = file_get_contents("php://stdin");
-			writeln(md5($stdin));
-			return true;
-		}
-		function cksumStdinPrint () {
-			$stdin = file_get_contents("php://stdin");
-			output("%s%s", $stdin, md5($stdin), array("reverse"=>false));
-			return true;
-		}
-
-		function cksumString ($str) {
-			return output("MD5 (%s) = %s", $str, md5(substr($str,1,-1)));
-		}
-		function runTests () {
-			writeln("MD5 test suite:");
-			$return = true;
-			foreach (array(
-					"", "a", "abc", "message digest", "abcdefghijklmnopqrstuvwxyz",
-					"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789",
-					"12345678901234567890123456789012345678901234567890123456789012345678901234567890") as $str ) {
-				$return = $return && cksumString("\"$str\"");
-			}
-			return $return;
-		}
-		function timeTrial () {
-			error_log("Time trial not supported in this version.");
-			return false;
-		}
-		function flag ($flag, $set = null) {
-			static $flags = array();
-			$f = in_array($flag, $flags) ? $flags[$flag] : ($flags[$flag] = false);
-			return ($set === null) ? $f : (($flags[$flag] = (bool)$set) || true) && $f;
-		}
-
-		function usage ($option = "") {
-			global $bin;
-			if (!empty($option)) {
-				error_log("$bin: illegal option -- $option");
-			}
-			writeln("usage: $bin [-pqrtx] [-s string] [files ...]");
-			return false;
-		}
-		function output ($format, $input, $digest, $flags = array()) {
-			$orig_flags = array();
-			foreach ($flags as $flag => $value) {
-				$orig_flags[$flag] = flag($flag);
-				flag($flag, $value);
-			}
-			if ( flag("quiet") ) {
-				writeln($digest);
-			} elseif ( flag("reverse") ) {
-				writeln( "$digest $input" );
-			} else {
-				writeln( sprintf($format, $input, $digest) );
-			}
-			foreach ($orig_flags as $flag=>$value) {
-				flag($flag, $value);
-			}
-			return true;
-		}
-		function writeln ($str) {
-			echo "$str\n";
-		}
-	?>'>$HOME/bin/md5
-	shebang $HOME/bin/md5 php "-d open_basedir="
-fi
 
 # a friendlier delete on the command line
 ! [ -d $HOME/.Trash ] && mkdir $HOME/.Trash
@@ -670,6 +483,7 @@ export GITHUB_USER=$(git config --get github.user)
 export GIT_COMMITTER_NAME=$(git config --get github.user)
 export GIT_COMMITTER_EMAIL=$(git config --get user.email)
 export GIT_AUTHOR_NAME=$(git config --get user.name)
+export GIT_AUTHOR_NAME=$(git config --get user.name)
 export GIT_AUTHOR_EMAIL=$(git config --get user.email)
 alias gci="git commit"
 alias gap="git add -p"
@@ -790,7 +604,7 @@ PROMPT_COMMAND='history -a
 echo "         "
 DIR=${PWD/$HOME/\~}
 echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
-if [ "$NAVE" != "" ]; then echo -ne "\033[44m $NAVE \033[m"; fi
+if [ "$NAVE" != "" ]; then echo -ne "\033[44m\033[37m $NAVE \033[m"; fi
 if [ -x ./configure ] || [ -d ./.git ]; then echo -ne "\033[42m\033[1;30m→\033[m"; fi
 echo -ne "$(__git_ps1 "\033[41m\033[37m %s \033[0m" 2>/dev/null)"
 echo -ne "\033[40m\033[37m$USER@\033[$([ ${HOSTNAME:0:14} == "sistertrain-lm" ] && echo 40 || echo 42)m\033[$([ ${HOSTNAME:0:14} == "sistertrain-lm" ] && echo 37 || echo 30)m$(uname -n)\033[0m:$DIR"'
