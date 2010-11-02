@@ -3,56 +3,7 @@
 
 alias compressmail='sqlite3 ~/Library/Mail/Envelope\ Index vacuum index'
 
-unison () {
-	local unison_prof="yap"
-	local unison_bin="$(which unison)"
-	$unison_bin -logfile /dev/null -ui text -times \
-		-ignore 'Regex .*docs/2008[0-9]{4}/.*' \
-		-ignore 'Regex .*/(FreeBSD|rhel)\.[0-9]+\.[0-9]+\.package.*' \
-		-ignore 'Regex .*\.svn' \
-		-ignore 'Regex .*/svn-commit*.tmp' \
-		-ignore 'Regex .*/\.DS_Store' $@ $unison_prof
-}
-unisondev () {
-	unison -terse -repeat 1 -batch
-}
-unisonpush () {
-	unison -force $HOME/dev/yap/ -batch -terse
-}
-unisonstart () {
-	echo "pushing..."
-	growlnotify -a Unison -t Unison -m pushing...
-	unisonpush
-	echo "starting..."
-	growlnotify -a Unison -t Unison -m starting...
-	unisondev
-	echo "stopped."
-	growlnotify -a Unison -t Unison -m stopped.
-}
-unisonquiet () {
-	headless 'back unisonstart &>~/.unisonlog' unisonsession
-}
-unisonlisten () {
-	title unison
-	local pid=$(pid unison)
-	if [ "$pid" == "" ]; then
-		unisonquiet
-	else
-		echo "[$pid] (already running)"
-	fi
-	tail -f ~/.unisonlog
-}
-unisonkill () {
-	killall $1 unison
-	for id in $(pid unison); do
-		kill $1 $id
-	done
-}
-alias uk=unisonkill
-
 [ $(basename "$EDITOR") == "mate_wait" ] && export LESSEDIT='mate_wait -l %lm %f'
-
-export UNISONLOCALHOSTNAME=sistertrain-lm.corp.yahoo.com
 
 sethost () {
 	sudo hostname sistertrain-lm
