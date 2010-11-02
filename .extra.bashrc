@@ -12,7 +12,7 @@
 # .extra_Darwin.bashrc has significantly more stuff, since my mac is also
 # a GUI environment, and my primary platform.
 ######
-
+main () {
 # Note for Leopard Users #
 # If you use this, it will probably make your $PATH variable pretty long,
 # which will cause terrible performance in a stock Leopard install.
@@ -26,10 +26,6 @@
 
 echo "loading bash extras..."
 
-# set some globals
-if ! [ -f "$HOME" ]; then
-	export HOME="$(echo ~)"
-fi
 
 # try to avoid polluting the global namespace with lots of garbage.
 # the *right* way to do this is to have everything inside functions,
@@ -49,8 +45,7 @@ __garbage () {
 		done
 	fi
 }
-
-! [ -d $HOME/bin ] && mkdir $HOME/bin
+__garbage __garbage
 __garbage __set_path
 __set_path () {
 	local var="$1"
@@ -60,18 +55,32 @@ __set_path () {
 	p=""
 	local i
 	for i in $path_elements; do
-		[ "$(echo $p | egrep "(^| )$i($| )")" == "" ] && [ -d $i ] && p="$p$i "
+		[ -d $i ] && p="$p$i "
 	done
 	export $var=$(p=$(echo $p); echo ${p// /:})
 }
 
-# homebrew="$HOME/.homebrew"
-homebrew="/usr/local"
-__garbage homebrew
-__set_path PATH "$HOME/bin:$HOME/local/bin:$HOME/scripts:$HOME/node/bin:/usr/nodejs/bin/:/usr/local/nginx/sbin:/opt/PalmSDK/Current/bin:$homebrew/bin:$homebrew/sbin:$HOME/dev/js/narwhal/bin:$HOME/dev/js/jack/bin:/opt/local/sbin:/opt/local/bin:/opt/local/libexec:/opt/local/apache2/bin:/opt/local/lib/mysql/bin:/opt/local/lib/erlang/bin:/usr/local/sbin:/usr/local/bin:/usr/local/libexec:/usr/sbin:/usr/bin:/usr/libexec:/sbin:/bin:/libexec:/usr/X11R6/bin:/home/y/include:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/include:/opt/local/apache2/include:/usr/local/include:/usr/include:/usr/X11R6/include:/opt/local/etc/LaunchDaemons/org.macports.lighttpd/:$HOME/appsup/TextMate/Support/bin:$homebrew/Cellar/autoconf213/2.13/bin:/usr/local/android:$homebrew/Cellar/gnutls/2.8.5/include:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin:$PATH"
+__garbage __form_paths
+local path_roots=( $HOME/ $HOME/local/ /usr/local/ /opt/local/ /usr/ /opt/ / )
+__form_paths () {
+  local r p paths
+  paths=""
+  for r in "${path_roots[@]}"; do
+    for p in "$@"; do
+      paths="$paths:$r$p"
+    done
+  done
+  echo ${paths/:/} # remove the first :
+}
 
-__set_path LD_LIBRARY_PATH "$homebrew/lib:/usr/lib"
-__set_path PKG_CONFIG_PATH "$homebrew/lib/pkgconfig:/opt/local/lib/pkgconfig:/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig:/usr/lib/pkgconfig"
+
+# homebrew="$HOME/.homebrew"
+local homebrew="/usr/local"
+__garbage homebrew
+__set_path PATH "$(__form_paths bin sbin libexec include):/usr/nodejs/bin/:/usr/local/nginx/sbin:$HOME/dev/js/narwhal/bin:/usr/X11R6/bin:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/apache2/include:/usr/X11R6/include:$homebrew/Cellar/autoconf213/2.13/bin:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin"
+
+__set_path LD_LIBRARY_PATH "$(__form_paths lib)"
+__set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig"
 
 __set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompressor/src"
 __set_path CDPATH ".:..:$HOME/dev:$HOME/dev/js:$HOME"
@@ -79,24 +88,6 @@ __set_path CDPATH ".:..:$HOME/dev:$HOME/dev/js:$HOME"
 # __set_path NODE_PATH "$HOME/.node_libraries:$HOME/dev/js/node/lib:$homebrew/lib/node_libraries:$HOME/dev/js/node-glob/build/default"
 
 __set_path PYTHONPATH "$HOME/dev/js/node/deps/v8/tools/:$HOME/dev/js/node/tools"
-
-jsreg () {
-	local pid=$(cat ~/.jsregpid)
-	if [ "$pid" ]; then
-		echo kill $pid
-		kill $pid
-		if [ "$?" == 0 ]; then
-			sleep 1
-			echo "" > ~/.jsregpid
-		fi
-	fi
-	if [ "$1" == "kill" ]; then
-		return 0
-	fi
-	ssh -N -L 5984:localhost:5984 izs.me &
-	echo $! > ~/.jsregpid
-	disown
-}
 
 # fail if the file is not an executable in the path.
 inpath () {
@@ -113,7 +104,7 @@ echo_error () {
 
 if [ -z "$BASH_COMPLETION_DIR" ]; then
 	# [ -f /opt/local/etc/bash_completion ] && . /opt/local/etc/bash_completion
-	inpath brew && [ -f "$(brew --prefix)/etc/bash_completion" ] && . "$(brew --prefix)/etc/bash_completion"
+	inpath brew && [ -f "$homebrew/etc/bash_completion" ] && . "$homebrew/etc/bash_completion"
 	[ -f /etc/bash_completion ] && . /etc/bash_completion
 fi
 
@@ -149,12 +140,6 @@ if ! [ -z "$BASH" ]; then
 		hostcomplete no_empty_cmd_completion nocaseglob
 fi
 
-hist () {
-	history \
-		| grep "$@" \
-		| uniq -f 2 -u
-}
-
 # A little hack to add forward-and-back traversal with cd
 if inpath php && inpath godir.php; then
   c () {
@@ -175,10 +160,6 @@ else
   alias -- -="cd -"
 fi
 
-
-# read a line from stdin, write to stdout.
-getln () { read "$@" t && echo $t; }
-
 # chooses the first argument that matches a file in the path.
 choose_first () {
 	for i in "$@"; do
@@ -190,12 +171,6 @@ choose_first () {
 			break
 		fi
 	done
-}
-
-
-# show a certain line of a file, or stdin
-line () {
-	sed ${1-0}'!d;q' < ${2-/dev/stdin}
 }
 
 # headless <command> [<key>]
@@ -213,14 +188,6 @@ headless () {
 	fi
 }
 
-# do something in the background
-back () {
-	( "$@" ) &
-}
-# do something very quietly.
-quiet () {
-	( "$@" ) &>/dev/null
-}
 #do something to all the things on standard input.
 # echo 1 2 3 | foreach echo foo is like calling echo foo 1; echo foo 2; echo foo 3;
 fe () {
@@ -229,21 +196,6 @@ fe () {
 		"$@" $i;
 	done
 }
-
-# test javascript files for syntax errors.
-if inpath yuicompressor; then
-	testjs () {
-		local i
-		local err
-		for i in $(find . -name "*.js"); do
-			err="$(yuicompressor -o /dev/null $i 2>/dev/stdout)"
-			if [ "$err" != "" ]; then
-				echo "$i has errors:"
-				echo "$err"
-			fi
-		done
-	}
-fi
 
 # # give a little colou?r to grep commands, if supported
 # grep=grep
@@ -254,33 +206,19 @@ fi
 # fi
 # alias grep="$grep"
 
-# substitute "this" for "that" if "this" exists and is in the path.
-substitute () {
-	! [ $# -eq 2 ] && echo "usage: substitute <desired> <orig>" && return 1
-	inpath "$1" && new="$(which "$1")" && alias $2="$new"
-}
-
-substitute yssh ssh
-substitute yscp scp
-
-export SVN_RSH=$(choose_first yssh ssh)
-export RSYNC_RSH=$(choose_first yssh ssh)
+export SVN_RSH=ssh
+export RSYNC_RSH=ssh
 export INPUTRC=$HOME/.inputrc
-# export POSIXLY_CORRECT=1
 
-# useful commands:
-__get_edit_cmd () {
-	echo "$( choose_first "$@" )"
-}
 # my list of editors, by preference.
-__edit_cmd="$( __get_edit_cmd vim mate vi pico ed )"
+__edit_cmd=vim
 alias edit="${__edit_cmd}"
 alias e="${__edit_cmd} ."
 ew () {
   edit $(which $1)
 }
 alias sued="sudo ${__edit_cmd}"
-export EDITOR="$( choose_first ${__edit_cmd}_wait ${__edit_cmd} )"
+export EDITOR=vim
 export VISUAL="$EDITOR"
 __garbage __get_edit_cmd __edit_cmd
 
@@ -315,48 +253,8 @@ shebang () {
 	return 0
 }
 
-# Probably a better way to do this, but whatevs.
-rand () {
-	echo $(php -r 'echo mt_rand();')
-}
-
-pickrand () {
-	local cnt=0
-	local tst="-d"
-	if [ $# == 1 ]; then
-		tst="$1"
-	fi
-	for i in *; do
-		[ $tst "$i" ] && let 'cnt += 1'
-	done
-	[ $cnt -eq 0 ] && return 1
-	local r=$(rand)
-	local p=0
-	let 'p = r % cnt'
-	# echo "[$cnt $r --- $p]"
-	cnt=0
-	for i in *; do
-		# echo "[$cnt]"
-		[ $tst "$i" ] && let 'cnt += 1' && [ $cnt -eq $p ] && echo "$i" && return
-	done
-}
-
 # a friendlier delete on the command line
-! [ -d $HOME/.Trash ] && mkdir $HOME/.Trash
 alias emptytrash="find $HOME/.Trash -not -path $HOME/.Trash -exec rm -rf {} \; 2>/dev/null"
-if ! inpath del; then
-	if [ -d $HOME/.Trash ]; then
-		del () {
-			for i in "$@"; do
-				mv "$i" $HOME/.Trash/
-			done
-		}
-	else
-		alias del=rm
-	fi
-fi
-
-alias mvsafe="mv -i"
 
 lscolor=""
 __garbage lscolor
@@ -373,16 +271,9 @@ alias la="$ls_cmd -Flas"
 alias lal="$ls_cmd -FLlash"
 alias ll="$ls_cmd -Flsh"
 alias ag="alias | grep"
-fn () {
-	local func=$(declare -f "$1")
-	[ -z "$func" ] && echo_error "$1 is not a function" && return 1
-	echo $func && return 0
-}
 alias lg="$ls_cmd -Flash | grep --color"
-alias chdir="cd"
 # alias more="less -e"
 export MANPAGER=more
-alias lsdevs="sudo lsof | grep ' /dev'"
 
 # domain sniffing
 wi () {
@@ -391,33 +282,6 @@ wi () {
 
 #make tree a little cooler looking.
 alias tree="tree -CFa -I 'rhel.*.*.package|.git' --dirsfirst"
-
-__garbage yapr
-if [ -f /etc/init.d/nginx ]; then
-	yapr="sudo /etc/init.d/nginx restart"
-elif inpath nginx; then
-	yapr="sudo nginx -s reload"
-elif inpath lighttpd-angel; then
-	yapr="sudo lighttpd-angel -f /usr/local/etc/lighttpd/lighttpd.conf restart"
-elif inpath lighttpd.wrapper; then
-	yapr="sudo lighttpd.wrapper restart"
-elif [ -f /etc/init.d/lighttpd ]; then
-	yapr="sudo /etc/init.d/lighttpd reload"
-elif inpath apache2ctl; then
-	yapr="sudo apache2ctl graceful"
-elif inpath apachectl; then
-	yapr="sudo apachectl graceful"
-else
-	# very strange!
-	yapr="echo Looks like nginx, lighttpd, and apache are not installed."
-fi
-alias yapr="$yapr"
-
-__garbage http_log
-http_log="$(choose_first /opt/local/var/log/lighttpd/error.log /home/y/logs/yapache/php-error /home/y/logs/yapache/error /home/y/logs/yapache/error_log /home/y/logs/yapache/us/error_log /home/y/logs/yapache/us/error /opt/local/apache2/logs/error_log /var/log/httpd/error_log /var/log/httpd/error /private/var/log/apache2/error_log)"
-yapl="tail -f $http_log | egrep -v '^E|udbClient'"
-alias yaprl="$yapr;$yapl"
-alias yapl="$yapl"
 
 prof () {
 	. $HOME/.extra.bashrc
@@ -527,7 +391,6 @@ rmnpm () {
 # git checkout somebranch
 # gpm someuser    # similar to "git pull someuser somebranch"
 # Remote branch is rebased, and local changes stashed and reapplied if possible.
-alias gpm=gp
 gp () {
 	local s
 	local head
@@ -540,11 +403,6 @@ gp () {
 	git fetch -a $1
 	git pull --rebase $1 "$head"
 	[ "$s" != "No local changes to save" ] && git stash pop
-}
-
-# look up a word
-dict () {
-	curl -s dict://dict.org/d:$1 | perl -ne 's/\r//; last if /^\.$/; print if /^151/../^250/' | more
 }
 
 #get the ip address of a host easily.
@@ -591,15 +449,12 @@ macs () {
 			interface=$i
 		else
 			echo $interface $i
-		fi
+	fi
 	done
 }
 
 # set the bash prompt and the title function
 
-# export __bg=$([ $(uname) == "Darwin" ] && echo 40 || echo 42)
-# export __color=$([ $(uname) == "Darwin" ] && echo 37 || echo 30)
-# 
 PROMPT_COMMAND='history -a
 echo "         "
 DIR=${PWD/$HOME/\~}
@@ -622,7 +477,6 @@ pid () {
 
 alias fh="ssh izs.me"
 alias p="ssh isaacs.xen.prgmr.com"
-alias st="ssh sistertrain.com"
 
 
 # shorthand for checking on ssh agents.
@@ -659,37 +513,6 @@ fetch_to () {
 
 # command-line perl prog
 alias pie="perl -pi -e "
-# c++ compilation shortcuts
-stripc () {
-	local f="$1"
-	local o="$f"
-	o=${o%.c}
-	o=${o%.cpp}
-	o=${o%.cc}
-	echo $o
-}
-cm () {
-	g++ -o $(stripc "$1") "$1"
-}
-cr () {
-	cm "$1" && ./$(stripc "$1")
-}
-cmi () { m cmi && return 0 || return 1; }
-m () {
-	p=$(pwd)
-	while [ "$p" != "/" ] && ! [ -x "$p/configure" ]; do
-		p=$(dirname "$p")
-	done
-	if [ "$p" == "/" ]; then
-		echo_error "Not in a project."
-		return 1
-	fi
-	[ "$p" != "$PWD" ] && cd "$p"
-	[ "$1" == "cmi" ] && sudo make clean 2>/dev/null
-	( [ "$1" == "cmi" ] && ./configure || true) && make && sudo make install && ( [ "$p" != "$PWD" ] && cd - || true ) && return 0
-	return 1
-}
-
 
 # convert dmgs to isos
 dmg2iso () {
@@ -699,52 +522,6 @@ dmg2iso () {
 		&& mv "$iso"{.cdr,} \
 		&& return 0
 	return 1
-}
-
-# tarsnap wrappers.
-# http://tarsnap.com
-ts () {
-	local e=echo
-	inpath growlnotify && e="growlnotify -t tarsnap -m "
-	if [ $# -lt 1 ] || ! [ -e "$1" ]; then
-		$e "Need to supply a file/directory to back up" 1>&2
-		return 1
-	fi
-	if [ $# -gt 1 ]; then
-		local errors=0
-		for i in "$@"; do
-			ts $i || let 'errors += 1'
-		done
-		return $errors
-	fi
-	local thetitle=$(title)
-	local thefile="$1"
-	$e "backing up $thefile"
-	title "backing up $thefile"
-	backupfile="$(hostname):${thefile/\//}:$(date +%Y-%m-%d-%H-%M-%S)"
-	backupfile=${backupfile//\//-}
-	tarsnap -cvf "$backupfile" $thefile 2> $HOME/.tslog
-	$e "done backing up $thefile"
-	title "$thetitle"
-}
-tsbg () {
-	( ts "$@" ) &
-}
-tsh () {
-	# headless <command> [<key>]
-	headless "ts $@" ts-headless-backup
-}
-tskill () {
-	kill -s SIGQUIT $(pid tarsnap)
-}
-tsabort () {
-	kill $(pid tarsnap)
-}
-tslisten () {
-	tail -f $HOME/.tslog
-}
-tsl () {
-	tslisten
 }
 
 #load any per-platform .extra.bashrc files.
@@ -759,3 +536,6 @@ inpath "git" && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
 __garbage
 
 export BASH_EXTRAS_LOADED=1
+}
+main
+unset main
