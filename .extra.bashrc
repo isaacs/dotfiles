@@ -455,7 +455,7 @@ macs () {
 
 # set the bash prompt and the title function
 
-PROMPT_COMMAND='history -a
+PROMPT_COMMAND='echo -ne "\033[m";history -a
 echo "         "
 DIR=${PWD/$HOME/\~}
 echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
