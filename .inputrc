@@ -7,8 +7,6 @@
 "\e[C": forward-char
 "\e[D": backward-char
 
-"\M-d": backward-kill-word
-
 # Make it show more useful info.
 set completion-ignore-case on
 set visible-stats on
