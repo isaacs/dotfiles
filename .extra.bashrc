@@ -299,8 +299,9 @@ pushprof () {
   local rsync="rsync --copy-links -v -a -z"
   for each in "$@"; do
     if [ "$each" != "" ]; then
-      if $rsync $HOME/.{inputrc,tarsnaprc,profile,extra,git}* $each:~ && \
-          $rsync $HOME/.ssh/*{.pub,authorized_keys,config} $each:~/.ssh/; then
+      if $rsync $HOME/.ssh/*{.pub,authorized_keys,config} $each:~/.ssh/ && \
+         $rsync $HOME/.{inputrc,profile,extra,git,vim,gvim}* $each:~
+      then
         echo "Pushed bash extras and public keys to $each"
       else
         echo "Failed to push to $each"
