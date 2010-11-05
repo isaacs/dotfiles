@@ -78,7 +78,6 @@ __form_paths () {
 local homebrew="/usr/local"
 __garbage homebrew
 __set_path PATH "$(__form_paths bin sbin libexec include):/usr/nodejs/bin/:/usr/local/nginx/sbin:$HOME/dev/js/narwhal/bin:/usr/X11R6/bin:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/apache2/include:/usr/X11R6/include:$homebrew/Cellar/autoconf213/2.13/bin:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin"
-
 __set_path LD_LIBRARY_PATH "$(__form_paths lib)"
 __set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig"
 
@@ -101,7 +100,6 @@ echo_error () {
   echo "$@" 1>&2
   return 0
 }
-
 if [ -z "$BASH_COMPLETION_DIR" ]; then
   # [ -f /opt/local/etc/bash_completion ] && . /opt/local/etc/bash_completion
   inpath brew && [ -f "$homebrew/etc/bash_completion" ] && . "$homebrew/etc/bash_completion"
@@ -294,6 +292,7 @@ editprof () {
   $EDITOR $HOME/.extra$s.bashrc
   prof
 }
+
 pushprof () {
   [ "$1" == "" ] && echo "no hostname provided" && return 1
   local failures=0
@@ -391,6 +390,7 @@ rmnpm () {
 # git checkout somebranch
 # gpm someuser    # similar to "git pull someuser somebranch"
 # Remote branch is rebased, and local changes stashed and reapplied if possible.
+
 gp () {
   local s
   local head
@@ -462,7 +462,7 @@ echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
 if [ "$NAVE" != "" ]; then echo -ne "\033[44m\033[37m $NAVE \033[m"; fi
 if [ -x ./configure ] || [ -d ./.git ]; then echo -ne "\033[42m\033[1;30m→\033[m"; fi
 echo -ne "$(__git_ps1 "\033[41m\033[37m %s \033[0m" 2>/dev/null)"
-echo -ne "\033[40m\033[37m$USER@\033[$([ ${HOSTNAME:0:14} == "sistertrain-lm" ] && echo 40 || echo 42)m\033[$([ ${HOSTNAME:0:14} == "sistertrain-lm" ] && echo 37 || echo 30)m$(uname -n)\033[0m:$DIR"'
+echo -ne "\033[40;37m$USER@\033[42;30m$(uname -n)\033[0m:$DIR"'
 #this part gets repeated when you tab to see options
 PS1="\n[\t] \\$ "
 
@@ -525,7 +525,8 @@ dmg2iso () {
 }
 
 #load any per-platform .extra.bashrc files.
-__garbage arch machinearch
+
+#__garbage arch machinearch
 arch=$(uname -s)
 machinearch=$(uname -m)
 [ -f $HOME/.extra_$arch.bashrc ] && . $HOME/.extra_$arch.bashrc
@@ -534,7 +535,7 @@ inpath "git" && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
 
 # call in the cleaner.
 __garbage
-
+return 0
 export BASH_EXTRAS_LOADED=1
 }
 main
