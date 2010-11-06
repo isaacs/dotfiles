@@ -366,8 +366,12 @@ ghadd () {
   local theirs="git://github.com/$who/$repo"
   git remote add "$nick" "$theirs"
 }
-alias gpa="git push --all"
-alias gpt="git push --tags"
+gpa () {
+  git push --all "$@"
+}
+gpt () {
+  git push --tags "$@"
+}
 gps () {
   gpa "$@"
   gpt "$@"
