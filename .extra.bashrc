@@ -49,14 +49,24 @@ __garbage __garbage
 __garbage __set_path
 __set_path () {
   local var="$1"
+  local orig=$(eval 'echo $'$var)
+  orig="${orig//:/ }"
   local p="$2"
 
   local path_elements="${p//:/ }"
   p=""
   local i
   for i in $path_elements; do
-    [ -d $i ] && p="$p$i "
+    if [ -d $i ]; then
+      p="$p$i "
+      # strip out from the original set.
+      orig=${orig/$i/}
+    fi
   done
+  # put the original at the front, but only the ones that aren't already present
+  # This preserves the intended ordering, and allows env hijacking tricks like
+  # nave and other subshell programs use.
+  p="$orig $p"
   export $var=$(p=$(echo $p); echo ${p// /:})
 }
 
@@ -111,11 +121,11 @@ alias js="NODE_READLINE_SEARCH=1 node"
 # Use UTF-8, and throw errors in PHP and Perl if it's not available.
 # Note: this is VERY obnoxious if UTF8 is not available!
 # That's the point!
-export LC_CTYPE=en_US.UTF-8
-export LC_ALL=""
-export LANG=$LC_CTYPE
-export LANGUAGE=$LANG
-export TZ=America/Los_Angeles
+# export LC_CTYPE=en_US.UTF-8
+# export LC_ALL=""
+# export LANG=$LC_CTYPE
+# export LANGUAGE=$LANG
+# export TZ=America/Los_Angeles
 export HISTSIZE=10000
 export HISTFILESIZE=1000000000
 # I prefer to use : instead of ^ for history replacements
@@ -272,7 +282,7 @@ alias ag="alias | grep"
 alias lg="$ls_cmd -Flash | grep --color"
 # alias more="less -e"
 export MANPAGER=more
-
+alias ZZ="exit"
 # domain sniffing
 wi () {
   whois $1 | egrep -i '(registrar:|no match|record expires on|holder:)'
