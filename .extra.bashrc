@@ -50,7 +50,7 @@ __garbage __set_path
 __set_path () {
   local var="$1"
   local orig=$(eval 'echo $'$var)
-  orig="${orig//:/ }"
+  orig="${orig//:/ } "
   local p="$2"
 
   local path_elements="${p//:/ }"
@@ -60,7 +60,12 @@ __set_path () {
     if [ -d $i ]; then
       p="$p$i "
       # strip out from the original set.
-      orig=${orig/$i/}
+      orig=${orig/$i /}
+    fi
+  done
+  for i in $orig; do
+    if ! [ -d $i ]; then
+      orig=${orig/$i /}
     fi
   done
   # put the original at the front, but only the ones that aren't already present
