@@ -288,6 +288,11 @@ alias lg="$ls_cmd -Flash | grep --color"
 # alias more="less -e"
 export MANPAGER=more
 alias ZZ="exit"
+if [ -x $HOME/.vim/macros/less.sh ]; then
+  alias more="$HOME/.vim/macros/less.sh"
+  alias less="$HOME/.vim/macros/less.sh"
+fi
+
 # domain sniffing
 wi () {
   whois $1 | egrep -i '(registrar:|no match|record expires on|holder:)'
