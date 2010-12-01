@@ -115,11 +115,7 @@ echo_error () {
   echo "$@" 1>&2
   return 0
 }
-if [ -z "$BASH_COMPLETION_DIR" ]; then
-  # [ -f /opt/local/etc/bash_completion ] && . /opt/local/etc/bash_completion
-  inpath brew && [ -f "$homebrew/etc/bash_completion" ] && . "$homebrew/etc/bash_completion"
-  [ -f /etc/bash_completion ] && . /etc/bash_completion
-fi
+
 
 alias js="NODE_READLINE_SEARCH=1 node"
 
@@ -556,6 +552,10 @@ arch=$(uname -s)
 machinearch=$(uname -m)
 [ -f $HOME/.extra_$arch.bashrc ] && . $HOME/.extra_$arch.bashrc
 [ -f $HOME/.extra_${arch}_${machinearch}.bashrc ] && . $HOME/.extra_${arch}_${machinearch}.bashrc
+[ -f /etc/bash_completion ] && . /etc/bash_completion
+[ -f /opt/local/etc/bash_completion ] && . /opt/local/etc/bash_completion
+[ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
+[ -f $HOME/etc/bash_completion ] && . $HOME/etc/bash_completion
 inpath "git" && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
 
 # call in the cleaner.
