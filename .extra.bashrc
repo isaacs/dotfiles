@@ -218,6 +218,7 @@ fe () {
 export SVN_RSH=ssh
 export RSYNC_RSH=ssh
 export INPUTRC=$HOME/.inputrc
+export JOBS=4
 
 # my list of editors, by preference.
 __edit_cmd=vim
