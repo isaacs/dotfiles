@@ -92,7 +92,7 @@ __form_paths () {
 # homebrew="$HOME/.homebrew"
 local homebrew="/usr/local"
 __garbage homebrew
-__set_path PATH "$homebrew/share/npm/bin:$(__form_paths bin sbin libexec include):/usr/nodejs/bin/:/usr/local/nginx/sbin:$HOME/dev/js/narwhal/bin:/usr/X11R6/bin:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/apache2/include:/usr/X11R6/include:$homebrew/Cellar/autoconf213/2.13/bin:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin"
+__set_path PATH "$HOME/local/nodejs/bin:/opt/nodejs/bin:/opt/local/gcc34/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin libexec include):/usr/nodejs/bin/:/usr/local/nginx/sbin:$HOME/dev/js/narwhal/bin:/usr/X11R6/bin:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/apache2/include:/usr/X11R6/include:$homebrew/Cellar/autoconf213/2.13/bin:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin:$HOME/dev/riak/rel/riak/bin"
 __set_path LD_LIBRARY_PATH "$(__form_paths lib)"
 __set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig"
 
@@ -100,7 +100,7 @@ __set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompr
 __set_path CDPATH ".:..:$HOME/dev:$HOME/dev/js:$HOME"
 
 # __set_path NODE_PATH "$HOME/.node_libraries:$HOME/dev/js/node/lib:$homebrew/lib/node_libraries:$HOME/dev/js/node-glob/build/default"
-__set_path NODE_PATH "$homebrew/share/npm/lib"
+__set_path NODE_PATH "/usr/local/node_modules"
 __set_path PYTHONPATH "$HOME/dev/js/node/deps/v8/tools/:$HOME/dev/js/node/tools"
 
 # fail if the file is not an executable in the path.
@@ -146,7 +146,8 @@ if ! [ -z "$BASH" ]; then
   __shopt \
     histappend histverify histreedit \
     cdspell expand_aliases cmdhist \
-    hostcomplete no_empty_cmd_completion nocaseglob
+    hostcomplete no_empty_cmd_completion nocaseglob \
+    checkhash
 fi
 
 # A little hack to add forward-and-back traversal with cd
@@ -361,15 +362,23 @@ fi
 # git stuff
 export GITHUB_TOKEN=$(git config --get github.token)
 export GITHUB_USER=$(git config --get github.user)
-export GIT_COMMITTER_NAME=$(git config --get github.user)
+export GIT_COMMITTER_NAME=${GITHUB_USER:-$(git config --get user.name)}
 export GIT_COMMITTER_EMAIL=$(git config --get user.email)
-export GIT_AUTHOR_NAME=$(git config --get user.name)
-export GIT_AUTHOR_NAME=$(git config --get user.name)
+export GIT_AUTHOR_NAME=${GITHUB_USER:-$(git config --get user.name)}
 export GIT_AUTHOR_EMAIL=$(git config --get user.email)
 alias gci="git commit"
 alias gap="git add -p"
 alias gst="git status"
 alias glg="git lg"
+cpg () {
+  rm *patch
+  git format-patch HEAD^
+  gist *patch | pbcopy
+}
+
+alias pbind="pbpaste | sed 's|^|    |g' | pbcopy"
+alias pbund="pbpaste | sed 's|^    ||g' | pbcopy"
+
 ghadd () {
   local me="$(git config --get github.user)"
   [ "$me" == "" ] && echo "Please enter your github name as the github.user git config." && return 1
@@ -383,6 +392,7 @@ ghadd () {
   # eg: git://github.com/isaacs/jack.git
   local theirs="git://github.com/$who/$repo"
   git remote add "$nick" "$theirs"
+  git fetch -a "$nick"
 }
 gpa () {
   git push --all "$@"
@@ -401,9 +411,21 @@ gsh () {
   echo -n $sha | pbcopy
   echo $sha
 }
-alias ngr="npm config get root"
+npmgit () {
+  local name=$1
+  git clone $(npm view $name repository.url) $name
+}
+gf () {
+  git fetch -a "$1"
+}
+
+alias np="npm prefix"
+alias nr="npm root"
+alias ngr="npm root -g"
+alias ngp="npm prefix -g"
+alias cdnp='cd $(npm prefix -g)'
 rmnpm () {
-  rm -rf {$(npm config get binroot),$(npm config get root)}/{.npm/,}npm*
+  rm -rf /usr/local/{node_modules,node,bin,share/man}/{.npm/,}npm*
 }
 
 # a context-sensitive rebasing git pull.
@@ -486,7 +508,23 @@ if [ -x ./configure ] || [ -d ./.git ]; then echo -ne "\033[42m\033[1;30m→\033
 echo -ne "$(__git_ps1 "\033[41m\033[37m %s \033[0m" 2>/dev/null)"
 echo -ne "\033[40;37m$USER@\033[42;30m$(uname -n)\033[0m:$DIR"'
 #this part gets repeated when you tab to see options
-PS1="\n[\t] \\$ "
+#PROMPT_COMMAND=
+PS1="\n\\$ "
+
+pres () {
+  export PROMPT_COMMAND='echo;
+  p=$(PWD);
+  if [ ${#p} -gt 40 ]; then
+    d=$(basename "$p")
+    p=$(dirname "$p")
+    i=$[ ${#p} - 40 ]
+    p=...${p:$i}/$d
+  fi
+  echo -n $p
+  '
+  PS1='\n$ '
+  clear
+}
 
 # view processes.
 alias processes="ps axMuc | egrep '^[a-zA-Z0-9]'"
@@ -558,6 +596,8 @@ machinearch=$(uname -m)
 [ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
 [ -f $HOME/etc/bash_completion ] && . $HOME/etc/bash_completion
 inpath "git" && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
+complete -cf sudo
+
 
 # call in the cleaner.
 __garbage
