@@ -118,6 +118,7 @@ __git_ps1 ()
 				      -e 's|^git\.||' \
 				      -e 's|\.git$||' \
 				      -e 's|^github:|gh:|' \
+				      -e 's|^nodejs.org:~/|n:|' \
               -e 's|^https?://github.com/|gh:|' \
 				      -e 's|^joyent:|j:|' \
 				      -e 's|^node@|n:|' \
