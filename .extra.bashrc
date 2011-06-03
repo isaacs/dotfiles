@@ -537,7 +537,7 @@ pid () {
 
 alias fh="ssh izs.me"
 alias p="ssh isaacs.xen.prgmr.com"
-alias df="ssh -A coal '/opt/local/bin/dfx'"
+alias df="ssh coal 'svcadm disable ntp;host pool.ntp.org | head -1 | awk '"'"'"'"'"'"'{print \$4}'"'"'"'"'"'"' | xargs ntpdate;svcadm enable ntp'"
 
 
 # shorthand for checking on ssh agents.
