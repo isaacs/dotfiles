@@ -97,7 +97,7 @@ __set_path LD_LIBRARY_PATH "$(__form_paths lib)"
 __set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig"
 
 __set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompressor/src"
-__set_path CDPATH ".:..:$HOME/dev:$HOME/dev/js:$HOME"
+__set_path CDPATH ".:..:$HOME/dev:$HOME/dev/js:$HOME/dev/joyent:$HOME"
 
 # __set_path NODE_PATH "$HOME/.node_libraries:$HOME/dev/js/node/lib:$homebrew/lib/node_libraries:$HOME/dev/js/node-glob/build/default"
 __set_path NODE_PATH "/usr/local/node_modules"
@@ -537,6 +537,7 @@ pid () {
 
 alias fh="ssh izs.me"
 alias p="ssh isaacs.xen.prgmr.com"
+alias df="ssh -A coal '/opt/local/bin/dfx'"
 
 
 # shorthand for checking on ssh agents.
