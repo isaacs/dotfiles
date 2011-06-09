@@ -17,4 +17,24 @@ for i in .*; do
 	fi
 done
 
+# install the centschbook mono font
+f=~/Library/Fonts
+c=Century-Schoolbook-Monospace-BT.ttf
+if [ -d $f ]; then
+  if [ -f $f/$c ]; then
+    mv $f/$c ~/.dotfile_backup
+  fi
+  ln -s $(pwd)/$c $f/$c
+fi
+
+# install the iterm2 prefs
+lp=~/Library/Preferences
+i2=com.googlecode.iterm2.plist
+if [ -d $lp ]; then
+  if [ -f $lp/$i2 ]; then
+    mv $lp/$i2 ~/.dotfile_backup
+  fi
+  ln -s $(pwd)/$i2 $lp/$i2
+fi
+
 exit 0
