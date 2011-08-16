@@ -379,6 +379,11 @@ cpg () {
 
 alias pbind="pbpaste | sed 's|^|    |g' | pbcopy"
 alias pbund="pbpaste | sed 's|^    ||g' | pbcopy"
+alias pbtxt="pbpaste | pbcopy"
+pbgist () {
+  pbpaste | gist "$@" | pbcopy
+  pbpaste
+}
 
 ghadd () {
   local me="$(git config --get github.user)"
