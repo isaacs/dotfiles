@@ -506,7 +506,7 @@ macs () {
 # set the bash prompt and the title function
 
 PROMPT_COMMAND='echo -ne "\033[m";history -a
-echo "         "
+echo ""
 DIR=${PWD/$HOME/\~}
 echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
 if [ "$NAVE" != "" ]; then echo -ne "\033[44m\033[37m $NAVE \033[m"; fi
