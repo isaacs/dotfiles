@@ -278,7 +278,8 @@ fi
 ls_cmd="ls$lscolor"
 __garbage ls_cmd
 alias ls="$ls_cmd"
-alias la="$ls_cmd -Flas"
+alias la="$ls_cmd -Fla"
+alias lah="$ls_cmd -Flah"
 alias lal="$ls_cmd -FLlash"
 alias ll="$ls_cmd -Flsh"
 alias ag="alias | grep"
