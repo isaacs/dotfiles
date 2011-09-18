@@ -592,7 +592,7 @@ machinearch=$(uname -m)
 [ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
 [ -f $HOME/etc/bash_completion ] && . $HOME/etc/bash_completion
 inpath "git" && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
-inpath "npm" && . <(npm completion 2>/dev/null)
+inpath "npm" && . <(npm completion -s)
 
 complete -cf sudo
 
