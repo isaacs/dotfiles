@@ -1,3 +1,4 @@
+#!/bin/bash
 ######
 # .extra.bashrc - Isaac's Bash Extras
 # This file is designed to be a drop-in for any machine that I log into.
@@ -24,7 +25,9 @@ main () {
 
 # Thanks to "allan" in irc://irc.freenode.net/#textmate for knowing this!
 
-echo "loading bash extras..."
+if [ "${BASH_EXTRAS_LOADED}" = "" ] && [ "$TERM_PROGRAM" != "DTerm" ]; then
+  echo "loading bash extras..."
+fi
 
 
 # try to avoid polluting the global namespace with lots of garbage.
@@ -93,14 +96,12 @@ __form_paths () {
 local homebrew="/usr/local"
 __garbage homebrew
 __set_path PATH "$HOME/local/nodejs/bin:/opt/nodejs/bin:/opt/local/gcc34/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin libexec include):/usr/nodejs/bin/:/usr/local/nginx/sbin:$HOME/dev/js/narwhal/bin:/usr/X11R6/bin:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/apache2/include:/usr/X11R6/include:$homebrew/Cellar/autoconf213/2.13/bin:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin:$HOME/dev/riak/rel/riak/bin"
-__set_path LD_LIBRARY_PATH "$(__form_paths lib)"
+#__set_path LD_LIBRARY_PATH "$(__form_paths lib)"
+unset LD_LIBRARY_PATH
 __set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig"
 
 __set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompressor/src"
 __set_path CDPATH ".:..:$HOME/dev:$HOME/dev/js:$HOME/dev/joyent:$HOME"
-
-# __set_path NODE_PATH "$HOME/.node_libraries:$HOME/dev/js/node/lib:$homebrew/lib/node_libraries:$HOME/dev/js/node-glob/build/default"
-__set_path NODE_PATH "/usr/local/node_modules"
 __set_path PYTHONPATH "$HOME/dev/js/node/deps/v8/tools/:$HOME/dev/js/node/tools"
 
 # fail if the file is not an executable in the path.
@@ -116,8 +117,14 @@ echo_error () {
   return 0
 }
 
-
-alias js="NODE_READLINE_SEARCH=1 node"
+js () {
+  local n=node
+  if [ -x ./node ]; then
+    echo "using ./node "$(./node --version)
+    n=./$n
+  fi
+  NODE_READLINE_SEARCH=1 $n "$@"
+}
 
 # Use UTF-8, and throw errors in PHP and Perl if it's not available.
 # Note: this is VERY obnoxious if UTF8 is not available!
@@ -176,7 +183,7 @@ choose_first () {
     if ! [ -f "$i" ] && inpath "$i"; then
       i="$(which "$i")"
     fi
-    if [ -f "$i" ]; then
+    if [ -x "$i" ]; then
       echo $i
       break
     fi
@@ -185,50 +192,34 @@ choose_first () {
 
 # headless <command> [<key>]
 # to reconnect, do: headless "" <key>
-headless () {
-  if [ "$2" == "" ]; then
-    hash=$(md5 -qs "$1")
-  else
-    hash="$2"
-  fi
-  if [ "$1" != "" ]; then
-    dtach -n /tmp/headless-$hash bash -l -c "$1"
-  else
-    dtach -A /tmp/headless-$hash bash -l
-  fi
-}
-
-#do something to all the things on standard input.
-# echo 1 2 3 | foreach echo foo is like calling echo foo 1; echo foo 2; echo foo 3;
-fe () {
-  local $i
-  for i in $(cat /dev/stdin); do
-    "$@" $i;
-  done
-}
-
-# # give a little colou?r to grep commands, if supported
-# grep=grep
-# if [ "$(grep --help | grep color)" != "" ]; then
-#   grep="grep --color"
-# elif [ "$(grep --help | grep colour)" != "" ]; then
-#   grep="grep --colour"
-# fi
-# alias grep="$grep"
+if inpath dtach; then
+  headless () {
+    if [ "$2" == "" ]; then
+      hash=$(md5 -qs "$1")
+    else
+      hash="$2"
+    fi
+    if [ "$1" != "" ]; then
+      dtach -n /tmp/headless-$hash bash -l -c "$1"
+    else
+      dtach -A /tmp/headless-$hash bash -l
+    fi
+  }
+fi
 
 export SVN_RSH=ssh
 export RSYNC_RSH=ssh
 export INPUTRC=$HOME/.inputrc
 export JOBS=4
 
-# my list of editors, by preference.
-__edit_cmd=vim
+# list of editors, by preference.
+__edit_cmd="vim"
 alias edit="${__edit_cmd}"
 alias e="${__edit_cmd} ."
 ew () {
   edit $(which $1)
 }
-alias sued="sudo ${__edit_cmd}"
+alias sued="sudo -e"
 export EDITOR=vim
 export VISUAL="$EDITOR"
 __garbage __get_edit_cmd __edit_cmd
@@ -272,8 +263,6 @@ __garbage lscolor
 if [ "$TERM" != "dumb" ] && [ -f "$(which dircolors 2>/dev/null)" ]; then
   eval "$(dircolors -b)"
   lscolor=" --color=auto"
-  #alias dir='ls --color=auto --format=vertical'
-  #alias vdir='ls --color=auto --format=long'
 fi
 ls_cmd="ls$lscolor"
 __garbage ls_cmd
@@ -284,13 +273,8 @@ alias lal="$ls_cmd -FLlash"
 alias ll="$ls_cmd -Flsh"
 alias ag="alias | grep"
 alias lg="$ls_cmd -Flash | grep --color"
-# alias more="less -e"
+
 export MANPAGER=more
-alias ZZ="exit"
-if [ -x $HOME/.vim/macros/less.sh ]; then
-  alias more="$HOME/.vim/macros/less.sh"
-  alias less="$HOME/.vim/macros/less.sh"
-fi
 
 # domain sniffing
 wi () {
@@ -301,8 +285,10 @@ wi () {
 alias tree="tree -CFa -I 'rhel.*.*.package|.git' --dirsfirst"
 
 prof () {
+  unset BASH_EXTRAS_LOADED
   . $HOME/.extra.bashrc
 }
+
 editprof () {
   s=""
   if [ "$1" != "" ]; then
@@ -331,21 +317,7 @@ pushprof () {
   return $failures
 }
 
-if inpath port; then
-  alias inst="sudo port install"
-  alias yl="port list installed"
-  yg () {
-    port list installed | grep "$@"
-  }
-  alias upup="sudo port sync && sudo port upgrade outdated"
-  cleanpkg () {
-    for i in "$@"; do
-      sudo port uninstall -f $i
-      sudo port clean $i
-      sudo port install $i
-    done
-  }
-elif inpath brew; then
+if inpath brew; then
   alias inst="brew install"
   alias yl="brew list"
   yg () {
@@ -371,11 +343,14 @@ alias gci="git commit"
 alias gap="git add -p"
 alias gst="git status"
 alias glg="git lg"
+
 cpg () {
   rm *patch
   git format-patch HEAD^
   gist *patch | pbcopy
 }
+
+alias gdiff='git diff --no-index --color'
 
 alias pbind="pbpaste | sed 's|^|    |g' | pbcopy"
 alias pbund="pbpaste | sed 's|^    ||g' | pbcopy"
@@ -400,16 +375,20 @@ ghadd () {
   git remote add "$nick" "$theirs"
   git fetch -a "$nick"
 }
+
 gpa () {
   git push --all "$@"
 }
+
 gpt () {
   git push --tags "$@"
 }
+
 gps () {
   gpa "$@"
   gpt "$@"
 }
+
 # Look up any ref's sha, and also copy it for pasting into bugs and such
 gsh () {
   local sha
@@ -417,10 +396,12 @@ gsh () {
   echo -n $sha | pbcopy
   echo $sha
 }
+
 npmgit () {
   local name=$1
   git clone $(npm view $name repository.url) $name
 }
+
 gf () {
   git fetch -a "$1"
 }
@@ -430,6 +411,7 @@ alias nr="npm root"
 alias ngr="npm root -g"
 alias ngp="npm prefix -g"
 alias cdnp='cd $(npm prefix -g)'
+
 rmnpm () {
   rm -rf /usr/local/{node_modules,node,bin,share/man}/{.npm/,}npm*
 }
@@ -505,29 +487,36 @@ macs () {
 
 # set the bash prompt and the title function
 
-PROMPT_COMMAND='echo -ne "\033[m";history -a
-echo ""
-DIR=${PWD/$HOME/\~}
-echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
-if [ "$NAVE" != "" ]; then echo -ne "\033[44m\033[37m $NAVE \033[m"; fi
-if [ -x ./configure ] || [ -d ./.git ]; then echo -ne "\033[42m\033[1;30m→\033[m"; fi
-echo -ne "$(__git_ps1 "\033[41m\033[37m %s \033[0m" 2>/dev/null)"
-echo -ne "\033[40;37m$USER@\033[42;30m$(uname -n)\033[0m:$DIR"'
+if [ "$PROMPT_COMMAND" = "" ]; then
+  PROMPT_COMMAND='
+    echo -ne "\033[m";history -a
+    echo ""
+    DIR=${PWD/$HOME/\~}
+    echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
+    echo -ne "$(__git_ps1 "\033[41;31m[\033[41;37m%s\033[41;31m]\033[0m" 2>/dev/null)"
+    echo -ne "\033[40;37m$USER@\033[42;30m$(uname -n)\033[0m:$DIR"
+    if [ "$NAVE" != "" ]; then echo -ne " \033[44m\033[37mv$NAVE\033[m"
+    else echo -ne " \033[32m$(node -v)\033[m"
+    fi
+  '
+fi
+
 #this part gets repeated when you tab to see options
 #PROMPT_COMMAND=
 PS1="\n\\$ "
 
 pres () {
-  export PROMPT_COMMAND='echo;
-  p=$(PWD);
-  if [ ${#p} -gt 40 ]; then
-    d=$(basename "$p")
-    p=$(dirname "$p")
-    i=$[ ${#p} - 40 ]
-    p=...${p:$i}/$d
-  fi
-  echo -n $p
-  '
+  # export PROMPT_COMMAND='echo;
+  # p=$(PWD);
+  # if [ ${#p} -gt 40 ]; then
+  #   d=$(basename "$p")
+  #   p=$(dirname "$p")
+  #   i=$[ ${#p} - 40 ]
+  #   p=...${p:$i}/$d
+  # fi
+  # echo -n $p
+  # '
+  export PROMPT_COMMAND=''
   PS1='\n$ '
   clear
 }
@@ -603,14 +592,15 @@ machinearch=$(uname -m)
 [ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
 [ -f $HOME/etc/bash_completion ] && . $HOME/etc/bash_completion
 inpath "git" && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
-inpath "npm" && . <(npm completion -s)
+inpath "npm" && . <(npm completion 2>/dev/null)
+
 complete -cf sudo
 
 
 # call in the cleaner.
 __garbage
-return 0
 export BASH_EXTRAS_LOADED=1
+return 0
 }
 main
 unset main
