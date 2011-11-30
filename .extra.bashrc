@@ -29,6 +29,7 @@ if [ "${BASH_EXTRAS_LOADED}" = "" ] && [ "$TERM_PROGRAM" != "DTerm" ]; then
   echo "loading bash extras..."
 fi
 
+alias z='date -u "+%Y-%m-%dT%H:%M:%SZ"'
 
 # try to avoid polluting the global namespace with lots of garbage.
 # the *right* way to do this is to have everything inside functions,
@@ -91,7 +92,8 @@ __form_paths () {
   echo ${paths/:/} # remove the first :
 }
 
-
+# mac tar fixing
+export COPYFILE_DISABLE=true
 # homebrew="$HOME/.homebrew"
 local homebrew="/usr/local"
 __garbage homebrew
@@ -119,7 +121,7 @@ echo_error () {
 
 js () {
   local n=node
-  if [ -x ./node ]; then
+  if [ -x ./node ] && [ -f ./node ]; then
     echo "using ./node "$(./node --version)
     n=./$n
   fi
@@ -343,6 +345,12 @@ alias gci="git commit"
 alias gap="git add -p"
 alias gst="git status"
 alias glg="git lg"
+alias gti="git"
+alias gci-am="git commit -am"
+
+gam () {
+  git ci -am "$*"
+}
 
 cpg () {
   rm *patch
@@ -406,6 +414,9 @@ gf () {
   git fetch -a "$1"
 }
 
+nsp () {
+  npm explore $1 -- git pull origin master
+}
 alias np="npm prefix"
 alias nr="npm root"
 alias ngr="npm root -g"
@@ -414,6 +425,15 @@ alias cdnp='cd $(npm prefix -g)'
 
 rmnpm () {
   rm -rf /usr/local/{node_modules,node,bin,share/man}/{.npm/,}npm*
+}
+
+# I can't type
+gi () {
+  local c=${1}
+  cmd=("$@")
+  cmd[1]=${c:1}
+  cmd[0]=git
+  "${cmd[@]}"
 }
 
 # a context-sensitive rebasing git pull.
