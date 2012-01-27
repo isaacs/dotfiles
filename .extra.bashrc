@@ -97,7 +97,11 @@ export COPYFILE_DISABLE=true
 # homebrew="$HOME/.homebrew"
 local homebrew="/usr/local"
 __garbage homebrew
-__set_path PATH "$HOME/local/nodejs/bin:/opt/nodejs/bin:/opt/local/gcc34/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin libexec include):/usr/nodejs/bin/:/usr/local/nginx/sbin:$HOME/dev/js/narwhal/bin:/usr/X11R6/bin:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/apache2/include:/usr/X11R6/include:$homebrew/Cellar/autoconf213/2.13/bin:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin:$HOME/dev/riak/rel/riak/bin"
+__set_path PATH "$HOME/bin:$HOME/local/nodejs/bin:/opt/nodejs/bin:/opt/local/gcc34/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin libexec include):/usr/nodejs/bin/:/usr/local/nginx/sbin:$HOME/dev/js/narwhal/bin:/usr/X11R6/bin:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/apache2/include:/usr/X11R6/include:$homebrew/Cellar/autoconf213/2.13/bin:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin:$HOME/dev/riak/rel/riak/bin"
+if [ -d "$HOME/Library/Application Support/TextMate/Support/bin" ]; then
+  export PATH=$PATH:"$HOME/Library/Application Support/TextMate/Support/bin"
+fi
+
 #__set_path LD_LIBRARY_PATH "$(__form_paths lib)"
 unset LD_LIBRARY_PATH
 __set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig"
@@ -148,7 +152,7 @@ if ! [ -z "$BASH" ]; then
   __shopt () {
     local i
     for i in "$@"; do
-      shopt -s $i
+      shopt -s $i 2>/dev/null
     done
   }
   # see http://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html#The-Shopt-Builtin
@@ -156,7 +160,7 @@ if ! [ -z "$BASH" ]; then
     histappend histverify histreedit \
     cdspell expand_aliases cmdhist \
     hostcomplete no_empty_cmd_completion nocaseglob \
-    checkhash
+    checkhash extglob globstar extdebug dirspell
 fi
 
 # A little hack to add forward-and-back traversal with cd
@@ -307,7 +311,8 @@ pushprof () {
   for each in "$@"; do
     if [ "$each" != "" ]; then
       if $rsync $HOME/.ssh/*{.pub,authorized_keys,config} $each:~/.ssh/ && \
-         $rsync $HOME/.{inputrc,profile,extra,git,vim,gvim}* $each:~
+         $rsync $HOME/.{inputrc,profile,extra,git}* $each:~ && \
+         $rsync --exclude='{.git,src}/' $HOME/.{vim,gvim}* $each:~
       then
         echo "Pushed bash extras and public keys to $each"
       else
@@ -347,6 +352,7 @@ alias gst="git status"
 alias glg="git lg"
 alias gti="git"
 alias gci-am="git commit -am"
+alias authors="(echo 'Isaac Z. Schlueter <i@izs.me>'; git authors | grep -v 'isaacs' | perl -pi -e 's|\([^\)]*\)||g' | sort | uniq)"
 
 gam () {
   git ci -am "$*"
@@ -414,6 +420,11 @@ gf () {
   git fetch -a "$1"
 }
 
+gv () {
+  local v=$(npm ls -pl | head -1 | awk -F: '{print $2}' | awk -F@ '{print $2}')
+  git ci -am $v && git tag -sm $v $v
+}
+
 nsp () {
   npm explore $1 -- git pull origin master
 }
@@ -465,6 +476,8 @@ getip () {
     nslookup $each | grep Address: | grep -v '#' | egrep -o '([0-9]+\.){3}[0-9]+'
     echo "ping:"
     ping -c1 -t1 $each | egrep -o '([0-9]+\.){3}[0-9]+' | head -n1
+    echo "dig:"
+    dig $each | grep . | egrep -v '^;'
   done
 }
 
@@ -516,7 +529,10 @@ if [ "$PROMPT_COMMAND" = "" ]; then
     echo -ne "$(__git_ps1 "\033[41;31m[\033[41;37m%s\033[41;31m]\033[0m" 2>/dev/null)"
     echo -ne "\033[40;37m$USER@\033[42;30m$(uname -n)\033[0m:$DIR"
     if [ "$NAVE" != "" ]; then echo -ne " \033[44m\033[37mv$NAVE\033[m"
-    else echo -ne " \033[32m$(node -v)\033[m"
+    else echo -ne " \033[32m$(node -v 2>/dev/null)\033[m"
+    fi
+    if [ "$BASH_VERSION" != "" ];then
+      echo -ne " \033[34;40;1m$BASH_VERSION\033[m"
     fi
   '
 fi
