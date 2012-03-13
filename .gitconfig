@@ -6,6 +6,7 @@
   cp = cherry-pick
 	df = diff
 	lg = log --graph --pretty=format:'%Cred%h%Creset %C(yellow)%an%d%Creset %s %Cgreen(%cr)%Creset' --date=relative
+  cl = log --graph --pretty=format:'%h%d %s (%an)'
 	lo = log --oneline
   authors = log --pretty=format:'%an <%ae>'
   dif = diff

@@ -25,7 +25,7 @@ main () {
 
 # Thanks to "allan" in irc://irc.freenode.net/#textmate for knowing this!
 
-if [ "${BASH_EXTRAS_LOADED}" = "" ] && [ "$TERM_PROGRAM" != "DTerm" ]; then
+if [ "${BASH_EXTRAS_LOADED}" = "" ] && [ "$TERM_PROGRAM" != "DTerm" ] && [ "$PS1" != "" ]; then
   echo "loading bash extras..."
 fi
 
@@ -75,7 +75,7 @@ __set_path () {
   # put the original at the front, but only the ones that aren't already present
   # This preserves the intended ordering, and allows env hijacking tricks like
   # nave and other subshell programs use.
-  p="$orig $p"
+  # p="$orig $p"
   export $var=$(p=$(echo $p); echo ${p// /:})
 }
 
@@ -216,7 +216,7 @@ fi
 export SVN_RSH=ssh
 export RSYNC_RSH=ssh
 export INPUTRC=$HOME/.inputrc
-export JOBS=4
+export JOBS=1
 
 # list of editors, by preference.
 __edit_cmd="vim"
