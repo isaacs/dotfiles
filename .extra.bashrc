@@ -406,7 +406,7 @@ gps () {
 # Look up any ref's sha, and also copy it for pasting into bugs and such
 gsh () {
   local sha
-  sha=$(git show ${1-HEAD} | head -n1 | awk '{print $2}' | xargs echo -n)
+  sha=$(git show ${1-HEAD} | grep commit | head -n1 | awk '{print $2}' | xargs echo -n)
   echo -n $sha | pbcopy
   echo $sha
 }
@@ -435,7 +435,7 @@ alias ngp="npm prefix -g"
 alias cdnp='cd $(npm prefix -g)'
 
 rmnpm () {
-  rm -rf /usr/local/{node_modules,node,bin,share/man}/{.npm/,}npm*
+  rm -rf /usr/local/{lib/,}{node_modules,node,bin,share/man}/{.npm/,}npm* ~/.npm
 }
 
 # I can't type
@@ -524,6 +524,9 @@ if [ "$PROMPT_COMMAND" = "" ]; then
   PROMPT_COMMAND='
     echo -ne "\033[m";history -a
     echo ""
+    if [ $SHLVL -gt 1 ]; then
+      { i=$SHLVL; while [ $i -gt 1 ]; do echo -n '.'; let i--; done; }
+    fi
     DIR=${PWD/$HOME/\~}
     echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
     echo -ne "$(__git_ps1 "\033[41;31m[\033[41;37m%s\033[41;31m]\033[0m" 2>/dev/null)"
