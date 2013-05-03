@@ -29,7 +29,23 @@ if [ "${BASH_EXTRAS_LOADED}" = "" ] && [ "$TERM_PROGRAM" != "DTerm" ] && [ "$PS1
   echo "loading bash extras..."
 fi
 
+# node building
+export V=
+export SIGN="Isaac Schlueter"
+
+# I actually frequently forget this.
+age () {
+  node -p <<JS
+(Date.now() - (new Date('1979-07-01T19:10:00.000Z')))/(1000 * 60 * 60 * 24 * 365.25)
+JS
+}
+
+# Why this is not exported in OS X, I have no idea
+export HOSTNAME
+
 alias z='date -u "+%Y-%m-%dT%H:%M:%SZ"'
+
+alias irc='dtach -a irssi-session'
 
 # try to avoid polluting the global namespace with lots of garbage.
 # the *right* way to do this is to have everything inside functions,
@@ -97,7 +113,7 @@ export COPYFILE_DISABLE=true
 # homebrew="$HOME/.homebrew"
 local homebrew="/usr/local"
 __garbage homebrew
-__set_path PATH "$HOME/bin:$HOME/local/nodejs/bin:/opt/nodejs/bin:/opt/local/gcc34/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin libexec include):/usr/nodejs/bin/:/usr/local/nginx/sbin:$HOME/dev/js/narwhal/bin:/usr/X11R6/bin:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/apache2/include:/usr/X11R6/include:$homebrew/Cellar/autoconf213/2.13/bin:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin:$HOME/dev/riak/rel/riak/bin"
+__set_path PATH "$HOME/bin:$HOME/local/nodejs/bin:/opt/nodejs/bin:/opt/local/gcc34/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin libexec include):/usr/nodejs/bin/:/usr/local/nginx/sbin:$HOME/dev/js/narwhal/bin:/usr/X11R6/bin:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/apache2/include:/usr/X11R6/include:$homebrew/Cellar/autoconf213/2.13/bin:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin:$HOME/dev/riak/rel/riak/bin:/usr/pkg/sbin:/usr/pkg/bin"
 if [ -d "$HOME/Library/Application Support/TextMate/Support/bin" ]; then
   export PATH=$PATH:"$HOME/Library/Application Support/TextMate/Support/bin"
 fi
@@ -122,6 +138,8 @@ echo_error () {
   echo "$@" 1>&2
   return 0
 }
+
+alias nodee=node
 
 js () {
   local n=node
@@ -340,22 +358,40 @@ elif inpath apt-get; then
 fi
 
 # git stuff
+export MANTA_KEY_ID="66:f2:21:3d:82:a8:21:f7:85:50:60:0b:5a:5e:82:f5"
+export MANTA_URL=https://manta-beta.joyentcloud.com/
+export MANTA_USER=NodeCore
+
 export GITHUB_TOKEN=$(git config --get github.token)
 export GITHUB_USER=$(git config --get github.user)
 export GIT_COMMITTER_NAME=${GITHUB_USER:-$(git config --get user.name)}
 export GIT_COMMITTER_EMAIL=$(git config --get user.email)
 export GIT_AUTHOR_NAME=${GITHUB_USER:-$(git config --get user.name)}
 export GIT_AUTHOR_EMAIL=$(git config --get user.email)
+
+grim () {
+  local m=${1-master}
+  echo "$m"
+  git rebase -i $m
+}
+
 alias gci="git commit"
 alias gap="git add -p"
 alias gst="git status"
 alias glg="git lg"
 alias gti="git"
+alias maek="make"
+alias meak="make"
+alias meak="make"
 alias gci-am="git commit -am"
 alias authors="(echo 'Isaac Z. Schlueter <i@izs.me>'; git authors | grep -v 'isaacs' | perl -pi -e 's|\([^\)]*\)||g' | sort | uniq)"
 
 gam () {
-  git ci -am "$*"
+  if [ $# -eq 0 ]; then
+    git ci -a
+  else
+    git ci -am "$@"
+  fi
 }
 
 cpg () {
@@ -404,11 +440,10 @@ gps () {
 }
 
 # Look up any ref's sha, and also copy it for pasting into bugs and such
+# the echo -n bit is to remove the trailing \n
 gsh () {
-  local sha
-  sha=$(git show ${1-HEAD} | grep commit | head -n1 | awk '{print $2}' | xargs echo -n)
-  echo -n $sha | pbcopy
-  echo $sha
+  local c="${1:-HEAD}"
+  git rev-list $c^..$c | tee >(xargs echo -n | pbcopy)
 }
 
 npmgit () {
@@ -531,11 +566,11 @@ if [ "$PROMPT_COMMAND" = "" ]; then
     echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
     echo -ne "$(__git_ps1 "\033[41;31m[\033[41;37m%s\033[41;31m]\033[0m" 2>/dev/null)"
     echo -ne "\033[40;37m$USER@\033[42;30m$(uname -n)\033[0m:$DIR"
-    if [ "$NAVE" != "" ]; then echo -ne " \033[44m\033[37mv$NAVE\033[m"
-    else echo -ne " \033[32m$(node -v 2>/dev/null)\033[m"
+    if [ "$NAVE" != "" ]; then echo -ne " \033[44m\033[37m$NAVE\033[0m"
+    else echo -ne " \033[32m$(node -v 2>/dev/null)\033[0m"
     fi
     if [ "$BASH_VERSION" != "" ];then
-      echo -ne " \033[34;40;1m$BASH_VERSION\033[m"
+      echo -ne " \033[34;40;1m$BASH_VERSION\033[0m"
     fi
   '
 fi
