@@ -1,43 +1,49 @@
+[user]
+  # you probably want to change this bit.
+	name = isaacs
+	email = i@izs.me
+  signingkey = 0x6C481CF6
 [alias]
-	ci = commit
-	st = status
-	br = branch
-	co = checkout
-  cp = cherry-pick
-	df = diff
-	lg = log --graph --pretty=format:'%Cred%h%Creset %C(yellow)%an%d%Creset %s %Cgreen(%cr)%Creset' --date=relative
   cl = log --graph --pretty=format:'%h%d %s (%an)'
-	lo = log --oneline
+  ci = commit
+  st = status
+  br = branch
+  co = checkout
+  cp = cherry-pick
+  df = diff
+  lg = log --graph --pretty=format:'%Cred%h%Creset %C(yellow)%an%d%Creset %s %Cgreen(%cr)%Creset' --date=relative
+  ll = log --first-parent --pretty=format:'%h %s'
+  lo = log --oneline
   authors = log --pretty=format:'%an <%ae>'
   dif = diff
   di = diff
   dff = diff
 [branch.master]
-	mergeoptions = log
+  mergeoptions = log
 [color]
-	branch = auto
-	diff = auto
-	status = auto
+  grep = auto
+  branch = auto
+  diff = auto
+  status = auto
 [color "branch"]
-	current = yellow reverse
-	local = yellow
-	remote = green
+  current = yellow reverse
+  local = yellow
+  remote = green
 [color "diff"]
-	meta = yellow bold
-	frag = magenta bold
-	old = red bold
-	new = green bold
+  meta = yellow bold
+  frag = magenta bold
+  old = red bold
+  new = green bold
 [color "status"]
-	added = yellow
-	changed = green
-[user]
-	name = isaacs
-	email = i@izs.me
-	signingkey = 0x6C481CF6
-[diff]
+  added = yellow
+  changed = green
 [difftool]
-	prompt = false
+  prompt = false
 [diff]
-	tool = vimdiff
+  tool = vimdiff
 [merge]
-	tool = vimdiff
+  tool = vimdiff
+[push]
+  default = current
+[core]
+	excludesfile = /Users/isaacs/.gitignore
