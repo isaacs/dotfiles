@@ -426,6 +426,18 @@ ghadd () {
   git fetch -a "$nick"
 }
 
+gho () {
+  local me="$(git config --get github.user)"
+  [ "$me" == "" ] && \
+    echo "Please enter your github name as the github.user git config." && \
+    return 1
+  # like: "git@github.com:$me/$repo.git"
+  local name="${1:-$(basename "$PWD")}"
+  local repo="git@github.com:$me/$name"
+  git remote add "origin" "$repo"
+  git fetch -a "$origin"
+}
+
 gpa () {
   git push --all "$@"
 }
