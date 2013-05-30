@@ -31,7 +31,7 @@ fi
 
 # node building
 export V=
-export SIGN="Isaac Schlueter"
+export SIGN="Developer ID Application: Joyent, Inc (X4ETB2T5LK)"
 
 # I actually frequently forget this.
 age () {
@@ -359,7 +359,7 @@ fi
 
 # git stuff
 export MANTA_KEY_ID="66:f2:21:3d:82:a8:21:f7:85:50:60:0b:5a:5e:82:f5"
-export MANTA_URL=https://manta-beta.joyentcloud.com/
+export MANTA_URL=https://manta.joyentcloud.com/
 export MANTA_USER=NodeCore
 
 export GITHUB_TOKEN=$(git config --get github.token)
@@ -616,9 +616,6 @@ if [ "$PROMPT_COMMAND" = "" ]; then
     echo -ne "\033[40;37m$USER@\033[42;30m$(uname -n)\033[0m:$DIR"
     if [ "$NAVE" != "" ]; then echo -ne " \033[44m\033[37m$NAVE\033[0m"
     else echo -ne " \033[32m$(node -v 2>/dev/null)\033[0m"
-    fi
-    if [ "$BASH_VERSION" != "" ];then
-      echo -ne " \033[34;40;1m$BASH_VERSION\033[0m"
     fi
   '
 fi
