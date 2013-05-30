@@ -429,6 +429,9 @@ pr () {
     url="${url%.git}"
     url="https://github.com/${url}/pull/$num"
   fi
+  url=${url%/commits}
+  url=${url%/files}
+
   local p='^https:\/\/github.com\/[^\/]+\/[^\/]+\/pull\/[0-9]+$'
   if ! [[ "$url" =~ $p ]]; then
     echo "Usage:"
@@ -441,7 +444,14 @@ pr () {
   local root="${url/\/pull\/+([0-9])/}"
   local ref="refs${url:${#root}}/head"
   echo git pull $root $ref
-  git pull $root $ref
+  pullup $root $ref
+}
+
+pullup () {
+  local me=$(git rev-list HEAD^..HEAD)
+  if [ $? -eq 0 ] && [ "$me" != "" ]; then
+    git pull "$@" && git rebase $me
+  fi
 }
 
 
