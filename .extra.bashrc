@@ -504,6 +504,18 @@ gsh () {
   git rev-list $c^..$c | tee >(xargs echo -n | pbcopy)
 }
 
+npmswitch () {
+  local n1=$1
+  local n2=$2
+  curl -s http://registry.npmjs.org/-/by-user/$n1 \
+  | json $n1 \
+  | json -a \
+  | xargs -I P sh -x -c \
+    'npm cache clean P && \
+     npm owner add '$n2' P && \
+     npm owner rm '$n1' P'
+}
+
 npmgit () {
   local name=$1
   git clone $(npm view $name repository.url) $name
