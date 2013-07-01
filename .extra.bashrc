@@ -358,7 +358,7 @@ fi
 
 # git stuff
 export MANTA_KEY_ID="66:f2:21:3d:82:a8:21:f7:85:50:60:0b:5a:5e:82:f5"
-export MANTA_URL=https://manta.joyentcloud.com/
+export MANTA_URL=https://us-east.manta.joyent.com
 export MANTA_USER=NodeCore
 
 export GITHUB_TOKEN=$(git config --get github.token)
