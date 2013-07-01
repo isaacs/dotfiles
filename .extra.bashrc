@@ -328,8 +328,7 @@ pushprof () {
   local rsync="rsync --copy-links -v -a -z"
   for each in "$@"; do
     if [ "$each" != "" ]; then
-      if $rsync $HOME/.ssh/*{.pub,authorized_keys,config} $each:~/.ssh/ && \
-         $rsync $HOME/.{inputrc,profile,extra,git}* $each:~ && \
+      if $rsync $HOME/.{inputrc,profile,extra,git}* $each:~ && \
          $rsync --exclude='{.git,src}/' $HOME/.{vim,gvim}* $each:~
       then
         echo "Pushed bash extras and public keys to $each"
