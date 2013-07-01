@@ -624,21 +624,25 @@ macs () {
 
 # set the bash prompt and the title function
 
+
 if [ "$PROMPT_COMMAND" = "" ]; then
-  PROMPT_COMMAND='
+  __prompt () {
     echo -ne "\033[m";history -a
     echo ""
     if [ $SHLVL -gt 1 ]; then
-      { i=$SHLVL; while [ $i -gt 1 ]; do echo -n '.'; let i--; done; }
+      { local i=$SHLVL; while [ $i -gt 1 ]; do echo -n '.'; let i--; done; }
     fi
-    DIR=${PWD/$HOME/\~}
-    echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)$HOSTNAME:$DIR\007"
+    local DIR=${PWD/$HOME/\~}
+    local HOST=${HOSTNAME:-$(uname -n)}
+    HOST=${HOST%.local}
+    echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)host $HOST : dir$DIR\007"
     echo -ne "$(__git_ps1 "\033[41;31m[\033[41;37m%s\033[41;31m]\033[0m" 2>/dev/null)"
-    echo -ne "\033[40;37m$USER@\033[42;30m$(uname -n)\033[0m:$DIR"
+    echo -ne "\033[40;37m$USER@\033[42;30m$HOST\033[0m:$DIR"
     if [ "$NAVE" != "" ]; then echo -ne " \033[44m\033[37m$NAVE\033[0m"
     else echo -ne " \033[32m$(node -v 2>/dev/null)\033[0m"
     fi
-  '
+  }
+  export PROMPT_COMMAND='__prompt'
 fi
 
 #this part gets repeated when you tab to see options
