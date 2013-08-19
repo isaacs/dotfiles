@@ -31,7 +31,8 @@ fi
 
 # node building
 export V=
-export SIGN="Developer ID Application: Joyent, Inc (X4ETB2T5LK)"
+export APP_SIGN="Developer ID Application: Joyent, Inc (X4ETB2T5LK)"
+export INT_SIGN="Developer ID Installer: Joyent, Inc (X4ETB2T5LK)"
 
 # I actually frequently forget this.
 age () {
@@ -360,6 +361,7 @@ fi
 export MANTA_KEY_ID="66:f2:21:3d:82:a8:21:f7:85:50:60:0b:5a:5e:82:f5"
 export MANTA_URL=https://us-east.manta.joyent.com
 export MANTA_USER=NodeCore
+export MANTA_USER=isaacs
 
 export GITHUB_TOKEN=$(git config --get github.token)
 export GITHUB_USER=$(git config --get github.user)
@@ -407,6 +409,22 @@ alias pbtxt="pbpaste | pbcopy"
 pbgist () {
   pbpaste | gist "$@" | pbcopy
   pbpaste
+}
+
+gh () {
+  local r=${1:-"origin"}
+  if [ "$r" == "browse" ]; then
+    r="origin"
+  fi
+  local o=$(git remote -v | grep $r | head -1 | awk '{print $2}')
+  o=${o/git\:\/\//git@}
+  o=${o/:/\/}
+  o=${o/git@/https\:\/\/}
+  local b="$(git branch | grep '\*' | awk '{print $2}')"
+  if [ "$b" != "master" ]; then
+    o=${o}/tree/$b
+  fi
+  open $o
 }
 
 pr () {
@@ -501,6 +519,49 @@ gps () {
 gsh () {
   local c="${1:-HEAD}"
   git rev-list $c^..$c | tee >(xargs echo -n | pbcopy)
+}
+
+# licensing is funsies!
+lic () {
+  isc
+}
+
+isc () {
+  if ! [ -f package.json ]; then
+    echo "Run isc in a npm project." >&2
+    return 1
+  fi
+
+  local current="$(json license < package.json)"
+  if [ "$current" = "ISC" ]; then
+    echo "already ISC" >&2
+    return 0
+  fi
+
+  json -e 'license="ISC"' < package.json > package.json.tmp &&\
+  mv package.json.tmp package.json &&\
+  cat >LICENSE <<ISC
+The ISC License
+
+Copyright (c) Isaac Z. Schlueter
+
+Permission to use, copy, modify, and/or distribute this software for any
+purpose with or without fee is hereby granted, provided that the above
+copyright notice and this permission notice appear in all copies.
+
+THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
+IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
+ISC
+  git add package.json LICENSE &&\
+  git commit -m "isc license" &&\
+  npm version patch &&\
+  git push origin master --tags &&\
+  npm publish
 }
 
 npmswitch () {
@@ -625,23 +686,24 @@ macs () {
 # set the bash prompt and the title function
 
 
+__prompt () {
+  echo -ne "\033[m";history -a
+  echo ""
+  if [ $SHLVL -gt 1 ]; then
+    { local i=$SHLVL; while [ $i -gt 1 ]; do echo -n '.'; let i--; done; }
+  fi
+  local DIR=${PWD/$HOME/\~}
+  local HOST=${HOSTNAME:-$(uname -n)}
+  HOST=${HOST%.local}
+  echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)host $HOST : dir$DIR\007"
+  echo -ne "$(__git_ps1 "\033[41;31m[\033[41;37m%s\033[41;31m]\033[0m" 2>/dev/null)"
+  echo -ne "\033[40;37m$USER@\033[42;30m$HOST\033[0m:$DIR"
+  if [ "$NAVE" != "" ]; then echo -ne " \033[44m\033[37m$NAVE\033[0m"
+  else echo -ne " \033[32m$(node -v 2>/dev/null)\033[0m"
+  fi
+}
+
 if [ "$PROMPT_COMMAND" = "" ]; then
-  __prompt () {
-    echo -ne "\033[m";history -a
-    echo ""
-    if [ $SHLVL -gt 1 ]; then
-      { local i=$SHLVL; while [ $i -gt 1 ]; do echo -n '.'; let i--; done; }
-    fi
-    local DIR=${PWD/$HOME/\~}
-    local HOST=${HOSTNAME:-$(uname -n)}
-    HOST=${HOST%.local}
-    echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)host $HOST : dir$DIR\007"
-    echo -ne "$(__git_ps1 "\033[41;31m[\033[41;37m%s\033[41;31m]\033[0m" 2>/dev/null)"
-    echo -ne "\033[40;37m$USER@\033[42;30m$HOST\033[0m:$DIR"
-    if [ "$NAVE" != "" ]; then echo -ne " \033[44m\033[37m$NAVE\033[0m"
-    else echo -ne " \033[32m$(node -v 2>/dev/null)\033[0m"
-    fi
-  }
   export PROMPT_COMMAND='__prompt'
 fi
 
@@ -736,7 +798,11 @@ machinearch=$(uname -m)
 [ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
 [ -f $HOME/etc/bash_completion ] && . $HOME/etc/bash_completion
 inpath "git" && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
-inpath "npm" && . <(npm completion -s)
+if inpath "npm"; then
+  npm completion > .npm-completion.tmp
+  source .npm-completion.tmp
+  rm .npm-completion.tmp
+fi
 
 complete -cf sudo
 
