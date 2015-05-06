@@ -114,7 +114,7 @@ export COPYFILE_DISABLE=true
 # homebrew="$HOME/.homebrew"
 local homebrew="/usr/local"
 __garbage homebrew
-__set_path PATH "$HOME/bin:$HOME/local/nodejs/bin:/opt/nodejs/bin:/opt/local/gcc34/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin libexec include):/usr/nodejs/bin/:/usr/local/nginx/sbin:$HOME/dev/js/narwhal/bin:/usr/X11R6/bin:/opt/local/share/mysql5/mysql:/usr/local/mysql/bin:/opt/local/apache2/include:/usr/X11R6/include:$homebrew/Cellar/autoconf213/2.13/bin:/Users/isaacs/.gem/ruby/1.8/bin:/opt/couchdb-1.0.0/bin:$HOME/dev/riak/rel/riak/bin:/usr/pkg/sbin:/usr/pkg/bin"
+__set_path PATH "$HOME/bin:$HOME/local/nodejs/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin libexec include):/usr/nodejs/bin/:/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include"
 if [ -d "$HOME/Library/Application Support/TextMate/Support/bin" ]; then
   export PATH=$PATH:"$HOME/Library/Application Support/TextMate/Support/bin"
 fi
@@ -124,8 +124,7 @@ unset LD_LIBRARY_PATH
 __set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig"
 
 __set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompressor/src"
-__set_path CDPATH ".:..:$HOME/dev:$HOME/dev/js:$HOME/dev/joyent:$HOME"
-__set_path PYTHONPATH "$HOME/dev/js/node/deps/v8/tools/:$HOME/dev/js/node/tools"
+__set_path CDPATH ".:..:$HOME/dev/npm:$HOME/dev:$HOME/dev/js:$HOME"
 
 # fail if the file is not an executable in the path.
 inpath () {
@@ -362,6 +361,8 @@ export MANTA_KEY_ID="66:f2:21:3d:82:a8:21:f7:85:50:60:0b:5a:5e:82:f5"
 export MANTA_URL=https://us-east.manta.joyent.com
 export MANTA_USER=NodeCore
 export MANTA_USER=isaacs
+export MANTA_USER=npm
+
 
 export GITHUB_TOKEN=$(git config --get github.token)
 export GITHUB_USER=$(git config --get github.user)
@@ -378,14 +379,14 @@ grim () {
 
 alias gci="git commit"
 alias gap="git add -p"
-alias gst="git status"
+alias gst="git status -s -uno"
 alias glg="git lg"
 alias gti="git"
 alias maek="make"
 alias meak="make"
 alias meak="make"
 alias gci-am="git commit -am"
-alias authors="(echo 'Isaac Z. Schlueter <i@izs.me>'; git authors | grep -v 'isaacs' | perl -pi -e 's|\([^\)]*\)||g' | sort | uniq)"
+alias authors="(echo 'Isaac Z. Schlueter <i@izs.me>'; git authors | grep -v 'isaacs' | perl -pi -e 's|\([^\)]*\)||g' 2>/dev/null | sort | uniq)"
 
 gam () {
   if [ $# -eq 0 ]; then
@@ -489,6 +490,19 @@ ghadd () {
   git fetch -a "$nick"
 }
 
+nresolve () {
+  node -p 'require.resolve("'$1'")'
+}
+
+ghn () {
+  local me=npm
+  # like: "git@github.com:$me/$repo.git"
+  local name="${1:-$(basename "$PWD")}"
+  local repo="git@github.com:$me/$name"
+  git remote add "origin" "$repo"
+  git fetch -a "$origin"
+}
+
 gho () {
   local me="$(git config --get github.user)"
   [ "$me" == "" ] && \
@@ -526,24 +540,23 @@ lic () {
   isc
 }
 
+#alias an="npm --userconfig=$HOME/admin.npmrc"
+#alias anp="npm --userconfig=$HOME/admin.npmrc"
+#alias anpm="npm --userconfig=$HOME/admin.npmrc"
+alias n=npm
+alias np=npm
+alias nt="npm test"
+
 isc () {
   if ! [ -f package.json ]; then
     echo "Run isc in a npm project." >&2
     return 1
   fi
 
-  local current="$(json license < package.json)"
-  if [ "$current" = "ISC" ]; then
-    echo "already ISC" >&2
-    return 0
-  fi
-
-  json -e 'license="ISC"' < package.json > package.json.tmp &&\
-  mv package.json.tmp package.json &&\
   cat >LICENSE <<ISC
 The ISC License
 
-Copyright (c) Isaac Z. Schlueter
+Copyright (c) Isaac Z. Schlueter and Contributors
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -557,6 +570,18 @@ WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR
 IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 ISC
+
+  local current="$(json license < package.json)"
+  if [ "$current" = "ISC" ]; then
+    echo "already ISC" >&2
+    return 0
+  fi
+
+  node -e '
+    j=require("./package.json")
+    j.license = "ISC"
+    console.log(JSON.stringify(j, null, 2))' > package.json.tmp &&\
+  mv package.json.tmp package.json &&\
   git add package.json LICENSE &&\
   git commit -m "isc license" &&\
   npm version patch &&\
@@ -564,16 +589,77 @@ ISC
   npm publish
 }
 
+nuke () {
+  local reg=https://aws-west-6.skimdb.internal.npmjs.com/registry/_design/app/_rewrite
+  local u=pyrotechnick
+
+  curl -vfs "$reg/-/by-user/$u" \
+  | json "$u" \
+  | json -a \
+  | while read PKG; do
+      npm \
+        --loglevel=error \
+        --registry="$reg" \
+        --userconfig=$HOME/admin.npmrc \
+        unpublish -f $PKG
+    done
+}
+
+squatter () {
+  local n1="$1"
+
+  if [ "$2" != "" ]; then
+    set -x
+  fi
+
+  local enc1="${n1// /%20}"
+  curl -vfs "http://registry.npmjs.org/-/by-user/$enc1" \
+  | json "$n1" \
+  | json -a \
+  | while read PKG; do
+      npm -q cache clean $PKG && \
+      files=$(
+        npm -q view $PKG dist.tarball \
+          | xargs curl -s \
+          | tar ztv \
+          | egrep -v 'package.json$' \
+          | egrep -v 'README\.md$' \
+          | egrep -v '\.npmignore$'
+      )
+      count=$(echo "$files" | wc -l)
+      if [ $count -lt 3 ]; then
+        echo ==== $PKG ====
+        echo "$files"
+      else
+        echo "$PKG has stuff in it"
+      fi
+    done
+
+  if [ "$2" != "" ]; then
+    set +x
+  fi
+}
+
+
 npmswitch () {
   local n1=$1
   local n2=$2
-  curl -s http://registry.npmjs.org/-/by-user/$n1 \
-  | json $n1 \
-  | json -a \
-  | xargs -I P sh -x -c \
-    'npm cache clean P && \
-     npm owner add '$n2' P && \
-     npm owner rm '$n1' P'
+  if [ "$n1" == "" ] || [ "$n2" == "" ]; then
+    echo "npmswitch <user-from> <user-to>"
+    return 1
+  fi
+  local enc1="${n1// /%20}"
+  set -x
+  curl -vsf "https://user-acl-1-west-staging.internal.npmjs.com/user/$enc1/package" \
+  | json items \
+  | json -a name \
+  | while read pkg; do
+    anpm cache clean "$pkg" && \
+    anpm owner add "$n2" "$pkg" && \
+    anpm owner rm "$n1" "$pkg" || \
+    echo failsome $?
+  done || echo failsome $?
+  set +x
 }
 
 npmgit () {
@@ -589,15 +675,6 @@ gv () {
   local v=$(npm ls -pl | head -1 | awk -F: '{print $2}' | awk -F@ '{print $2}')
   git ci -am $v && git tag -sm $v $v
 }
-
-nsp () {
-  npm explore $1 -- git pull origin master
-}
-alias np="npm prefix"
-alias nr="npm root"
-alias ngr="npm root -g"
-alias ngp="npm prefix -g"
-alias cdnp='cd $(npm prefix -g)'
 
 rmnpm () {
   rm -rf /usr/local/{lib/,}{node_modules,node,bin,share/man}/{.npm/,}npm* ~/.npm
@@ -689,6 +766,7 @@ macs () {
 __prompt () {
   echo -ne "\033[m";history -a
   echo ""
+  [ -d .git ] && git stash list
   if [ $SHLVL -gt 1 ]; then
     { local i=$SHLVL; while [ $i -gt 1 ]; do echo -n '.'; let i--; done; }
   fi
@@ -698,9 +776,10 @@ __prompt () {
   echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)host $HOST : dir$DIR\007"
   echo -ne "$(__git_ps1 "\033[41;31m[\033[41;37m%s\033[41;31m]\033[0m" 2>/dev/null)"
   echo -ne "\033[40;37m$USER@\033[42;30m$HOST\033[0m:$DIR"
-  if [ "$NAVE" != "" ]; then echo -ne " \033[44m\033[37m$NAVE\033[0m"
-  else echo -ne " \033[32m$(node -v 2>/dev/null)\033[0m"
+  if [ "$NAVE" != "" ]; then echo -ne " \033[44m\033[37mnode@$NAVE\033[0m"
+  else echo -ne " \033[32mnode@$(node -v 2>/dev/null)\033[0m"
   fi
+  [ -f package.json ] && echo -ne "$(node -e 'j=require("./package.json");if(j.name&&j.version)console.log(" \033[35m"+j.name+"@"+j.version+"\033[0m")')"
 }
 
 if [ "$PROMPT_COMMAND" = "" ]; then
@@ -737,8 +816,6 @@ pid () {
 }
 
 alias fh="ssh izs.me"
-alias p="ssh isaacs.xen.prgmr.com"
-alias dfx="ssh coal 'svcadm disable ntp;host pool.ntp.org | head -1 | awk '"'"'"'"'"'"'{print \$4}'"'"'"'"'"'"' | xargs ntpdate;svcadm enable ntp'"
 
 
 # shorthand for checking on ssh agents.
@@ -801,7 +878,7 @@ inpath "git" && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
 if inpath "npm"; then
   npm completion > .npm-completion.tmp
   source .npm-completion.tmp
-  rm .npm-completion.tmp
+  rm -f .npm-completion.tmp
 fi
 
 complete -cf sudo

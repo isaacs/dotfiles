@@ -3,6 +3,8 @@
 	name = isaacs
 	email = i@izs.me
   signingkey = 0x6C481CF6
+[github]
+  user = isaacs
 [alias]
   cl = log --graph --pretty=format:'%h%d %s (%an)'
   ci = commit
@@ -25,6 +27,7 @@
   branch = auto
   diff = auto
   status = auto
+	ui = true
 [color "branch"]
   current = yellow reverse
   local = yellow
