@@ -117,19 +117,23 @@ __git_ps1 ()
 				      -e 's|\.com\:|:|' \
 				      -e 's|^git\.||' \
 				      -e 's|\.git$||' \
-				      -e 's|^github:|gh:|' \
+              -e 's|^https://github.com/|gh:|' \
+              -e 's|^http://github.com/|gh:|' \
+				      -e 's|^github:||' \
 				      -e 's|^nodejs.org:~/|n:|' \
-              -e 's|^https?://github.com/|gh:|' \
 				      -e 's|^joyent:|j:|' \
 				      -e 's|^node@|n:|' \
-				      -e 's|:isaacs/|:|' \
 				      -e 's|.no.de:repo$||' \
 				2>/dev/null )
 		then
 		  if [ "$n" == "" ]; then
 		    n=$(basename $PWD)
 		  fi
-			b="$n/$b"
+      if [ "$b" == "master" ]; then
+        b="$n"
+      else
+        b="$n $b"
+      fi
 		fi
 		
 		if [ -n "$1" ]; then

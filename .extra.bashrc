@@ -13,10 +13,6 @@
 main () {
   #echo 'start ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 
-if [ "${BASH_EXTRAS_LOADED}" = "" ] && [ "$TERM_PROGRAM" != "DTerm" ] && [ "$PS1" != "" ]; then
-  echo "loading bash extras..."
-fi
-
 # I actually frequently forget this.
 age () {
   node -p <<JS
@@ -665,13 +661,13 @@ __prompt () {
   HOST=${HOST%.local}
   echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)host $HOST : dir$DIR\007"
   # echo -ne "$(__git_ps1 "%s " 2>/dev/null)"
-  echo -ne "$(__git_ps1 "\033[40;30m[\033[40;35m%s\033[40;30m]\033[0m" 2>/dev/null)"
+  echo -ne "$(__git_ps1 "\033[40;35m%s\033[40;30m>\033[0m" 2>/dev/null)"
   echo -ne "\033[44;37m$HOST\033[0m:$DIR"
   # echo -ne "$USER@$HOST:$DIR"
   if [ "$NAVE" != "" ]; then echo -ne " \033[44;37mnode@$NAVE\033[0m"
   else echo -ne " \033[32mnode@$(node -v 2>/dev/null)\033[0m"
   fi
-  [ -f package.json ] && echo -ne "$(node -e 'j=require("./package.json");if(j.name&&j.version)console.log(" \033[35m"+j.name+"@"+j.version+"\033[0m")')"
+  # [ -f package.json ] && echo -ne "$(node -e 'j=require("./package.json");if(j.name&&j.version)console.log(" \033[35m"+j.name+"@"+j.version+"\033[0m")')"
 }
 
 if [ "$PROMPT_COMMAND" = "" ]; then
