@@ -13,8 +13,10 @@
   co = checkout
   cp = cherry-pick
   df = diff
+  ln = log --graph --pretty=format:'%Cred%h%Creset %C(yellow)%an%d%Creset %s %b %Cgreen(%cr)%Creset' --date=relative
   lg = log --graph --pretty=format:'%Cred%h%Creset %C(yellow)%an%d%Creset %s %Cgreen(%cr)%Creset' --date=relative
   ll = log --first-parent --pretty=format:'%h %s'
+  lc = log --first-parent --pretty=format:'%s'
   lo = log --oneline
   authors = log --pretty=format:'%an <%ae>'
   dif = diff

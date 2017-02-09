@@ -9,43 +9,31 @@
 #
 # Functions are preferred over shell scripts, because then there's just
 # a few files to rsync over to a new host for me to use it comfortably.
-#
-# .extra_Darwin.bashrc has significantly more stuff, since my mac is also
-# a GUI environment, and my primary platform.
 ######
 main () {
-# Note for Leopard Users #
-# If you use this, it will probably make your $PATH variable pretty long,
-# which will cause terrible performance in a stock Leopard install.
-# To fix this, comment out the following lines in your /etc/profile file:
-
-# if [ -x /usr/libexec/path_helper ]; then
-#   eval `/usr/libexec/path_helper -s`
-# fi
-
-# Thanks to "allan" in irc://irc.freenode.net/#textmate for knowing this!
+  #echo 'start ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 
 if [ "${BASH_EXTRAS_LOADED}" = "" ] && [ "$TERM_PROGRAM" != "DTerm" ] && [ "$PS1" != "" ]; then
   echo "loading bash extras..."
 fi
 
-# node building
-export V=
-export APP_SIGN="Developer ID Application: Joyent, Inc (X4ETB2T5LK)"
-export INT_SIGN="Developer ID Installer: Joyent, Inc (X4ETB2T5LK)"
-
 # I actually frequently forget this.
 age () {
   node -p <<JS
-(Date.now() - (new Date('1979-07-01T19:10:00.000Z')))/(1000 * 60 * 60 * 24 * 365.25)
+var now = Date.now()
+var born = new Date('1979-07-01T19:10:00.000Z').getTime()
+age = now - born
+age / (1000 * 60 * 60 * 24 * 365.25)
 JS
+}
+
+now () {
+  node -p 'new Date().toISOString()'
 }
 
 # Why this is not exported in OS X, I have no idea
 export HOSTNAME
-
 alias z='date -u "+%Y-%m-%dT%H:%M:%SZ"'
-
 alias irc='dtach -a irssi-session'
 
 # try to avoid polluting the global namespace with lots of garbage.
@@ -68,7 +56,9 @@ __garbage () {
 }
 __garbage __garbage
 __garbage __set_path
+#echo '75    ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 __set_path () {
+#echo 'sp 0  ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
   local var="$1"
   local orig=$(eval 'echo $'$var)
   orig=" ${orig//:/ } "
@@ -94,11 +84,14 @@ __set_path () {
   # nave and other subshell programs use.
   # p="$orig $p"
   export $var=$(p=$(echo $p); echo ${p// /:})
+#echo 'sp 1  ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 }
 
 __garbage __form_paths
+#echo '105   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 local path_roots=( $HOME/ $HOME/local/ /usr/local/ /opt/local/ /usr/ /opt/ / )
 __form_paths () {
+#echo 'fp 0  ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
   local r p paths
   paths=""
   for r in "${path_roots[@]}"; do
@@ -107,39 +100,24 @@ __form_paths () {
     done
   done
   echo ${paths/:/} # remove the first :
+#echo 'fp 1  ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 }
+#echo '119   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 
 # mac tar fixing
 export COPYFILE_DISABLE=true
 # homebrew="$HOME/.homebrew"
 local homebrew="/usr/local"
-__garbage homebrew
-__set_path PATH "$HOME/bin:$HOME/local/nodejs/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin libexec include):/usr/nodejs/bin/:/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include"
-if [ -d "$HOME/Library/Application Support/TextMate/Support/bin" ]; then
-  export PATH=$PATH:"$HOME/Library/Application Support/TextMate/Support/bin"
-fi
+__set_path PATH "$HOME/bin:$HOME/.rvm/bin::$homebrew/share/npm/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:$HOME/Library/Application Support/TextMate/Support/bin"
 
-#__set_path LD_LIBRARY_PATH "$(__form_paths lib)"
 unset LD_LIBRARY_PATH
 __set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig"
 
-__set_path CLASSPATH "./:$HOME/dev/js/rhino/build/classes:$HOME/dev/yui/yuicompressor/src"
 __set_path CDPATH ".:..:$HOME/dev/npm:$HOME/dev:$HOME/dev/js:$HOME"
 
-# fail if the file is not an executable in the path.
-inpath () {
-  ! [ $# -eq 1 ] && echo "usage: inpath <file>" && return 1
-  f="$(which "$1" 2>/dev/null)"
-  [ -f "$f" ] && return 0
-  return 1
-}
-
-echo_error () {
-  echo "$@" 1>&2
-  return 0
-}
-
 alias nodee=node
+alias ndoe=node
+alias noed=node
 
 js () {
   local n=node
@@ -150,14 +128,7 @@ js () {
   NODE_READLINE_SEARCH=1 $n "$@"
 }
 
-# Use UTF-8, and throw errors in PHP and Perl if it's not available.
-# Note: this is VERY obnoxious if UTF8 is not available!
-# That's the point!
-# export LC_CTYPE=en_US.UTF-8
-# export LC_ALL=""
-# export LANG=$LC_CTYPE
-# export LANGUAGE=$LANG
-# export TZ=America/Los_Angeles
+export NODE_REPL_HISTORY_FILE=~/.node-history
 export HISTSIZE=10000
 export HISTFILESIZE=1000000000
 # I prefer to use : instead of ^ for history replacements
@@ -176,77 +147,32 @@ if ! [ -z "$BASH" ]; then
   # see http://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html#The-Shopt-Builtin
   __shopt \
     histappend histverify histreedit \
-    cdspell expand_aliases cmdhist \
+    cdspell expand_aliases cmdhist globasciiranges \
     hostcomplete no_empty_cmd_completion nocaseglob \
     checkhash extglob globstar extdebug dirspell
 fi
 
+#echo '187   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 # A little hack to add forward-and-back traversal with cd
-if inpath php && inpath godir.php; then
-  c () {
-    local a
-    alias cd="cd"
-    a="$(godir.php "$@")"
-    [ "$a" != "" ] && eval $a
-    [ -f .DS_Store ] && rm .DS_Store
-    alias cd="c"
-  }
-  alias cd="c"
-  alias ..="c .."
-  alias -- -="c -1"
-  alias -- _="c +1"
-  alias s="c --show"
-else
-  alias ..="cd .."
-  alias -- -="cd -"
-fi
+alias ..="cd .."
+alias -- -="cd -"
+# alias cd='exec nave auto'
 
-# chooses the first argument that matches a file in the path.
-choose_first () {
-  for i in "$@"; do
-    if ! [ -f "$i" ] && inpath "$i"; then
-      i="$(which "$i")"
-    fi
-    if [ -x "$i" ]; then
-      echo $i
-      break
-    fi
-  done
-}
-
-# headless <command> [<key>]
-# to reconnect, do: headless "" <key>
-if inpath dtach; then
-  headless () {
-    if [ "$2" == "" ]; then
-      hash=$(md5 -qs "$1")
-    else
-      hash="$2"
-    fi
-    if [ "$1" != "" ]; then
-      dtach -n /tmp/headless-$hash bash -l -c "$1"
-    else
-      dtach -A /tmp/headless-$hash bash -l
-    fi
-  }
-fi
-
+#echo '250   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 export SVN_RSH=ssh
 export RSYNC_RSH=ssh
 export INPUTRC=$HOME/.inputrc
 export JOBS=1
 
 # list of editors, by preference.
-__edit_cmd="vim"
-alias edit="${__edit_cmd}"
-alias e="${__edit_cmd} ."
+alias edit="vim"
+alias e="vim"
 ew () {
   edit $(which $1)
 }
 alias sued="sudo -e"
 export EDITOR=vim
 export VISUAL="$EDITOR"
-__garbage __get_edit_cmd __edit_cmd
 
 # shebang <file> <program> [<args>]
 shebang () {
@@ -282,14 +208,12 @@ shebang () {
 # a friendlier delete on the command line
 alias emptytrash="find $HOME/.Trash -not -path $HOME/.Trash -exec rm -rf {} \; 2>/dev/null"
 
-lscolor=""
-__garbage lscolor
+local lscolor=""
 if [ "$TERM" != "dumb" ] && [ -f "$(which dircolors 2>/dev/null)" ]; then
   eval "$(dircolors -b)"
   lscolor=" --color=auto"
 fi
-ls_cmd="ls$lscolor"
-__garbage ls_cmd
+local ls_cmd="ls$lscolor"
 alias ls="$ls_cmd"
 alias la="$ls_cmd -Fla"
 alias lah="$ls_cmd -Flah"
@@ -341,29 +265,7 @@ pushprof () {
   return $failures
 }
 
-if inpath brew; then
-  alias inst="brew install"
-  alias yl="brew list"
-  yg () {
-    brew list | grep "$@"
-  }
-elif inpath apt-get; then
-  alias inst="sudo apt-get install"
-  alias yl="dpkg --list | egrep '^ii'"
-  yg () {
-    dpkg --list | egrep '^ii' | grep "$@"
-  }
-  alias upup="sudo apt-get update && sudo apt-get upgrade"
-fi
-
 # git stuff
-export MANTA_KEY_ID="66:f2:21:3d:82:a8:21:f7:85:50:60:0b:5a:5e:82:f5"
-export MANTA_URL=https://us-east.manta.joyent.com
-export MANTA_USER=NodeCore
-export MANTA_USER=isaacs
-export MANTA_USER=npm
-
-
 export GITHUB_TOKEN=$(git config --get github.token)
 export GITHUB_USER=$(git config --get github.user)
 export GIT_COMMITTER_NAME=${GITHUB_USER:-$(git config --get user.name)}
@@ -421,6 +323,7 @@ gh () {
   o=${o/git\:\/\//git@}
   o=${o/:/\/}
   o=${o/git@/https\:\/\/}
+  o=${o%.git}
   local b="$(git branch | grep '\*' | awk '{print $2}')"
   if [ "$b" != "master" ]; then
     o=${o}/tree/$b
@@ -449,6 +352,7 @@ pr () {
   fi
   url=${url%/commits}
   url=${url%/files}
+  url="$(echo $url | perl -p -e 's/#issuecomment-[0-9]+$//g')"
 
   local p='^https:\/\/github.com\/[^\/]+\/[^\/]+\/pull\/[0-9]+$'
   if ! [[ "$url" =~ $p ]]; then
@@ -459,6 +363,7 @@ pr () {
       echo "(will read url/id from clipboard if not specified)"
     return 1
   fi
+  url="${url/https:\/\/github\.com\//git@github.com:}"
   local root="${url/\/pull\/+([0-9])/}"
   local ref="refs${url:${#root}}/head"
   echo git pull $root $ref
@@ -490,6 +395,8 @@ ghadd () {
   git fetch -a "$nick"
 }
 
+#echo '504   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
+
 nresolve () {
   node -p 'require.resolve("'$1'")'
 }
@@ -499,8 +406,24 @@ ghn () {
   # like: "git@github.com:$me/$repo.git"
   local name="${1:-$(basename "$PWD")}"
   local repo="git@github.com:$me/$name"
-  git remote add "origin" "$repo"
-  git fetch -a "$origin"
+  git remote rm origin
+  git remote add origin "$repo"
+  git fetch -a "origin"
+}
+
+ght () {
+  local me=tapjs
+  # like: "git@github.com:$me/$repo.git"
+  local name="${1:-$(basename "$PWD")}"
+  local repo="git@github.com:$me/$name"
+  git remote rm origin
+  git remote add origin "$repo"
+  git fetch -a "origin"
+}
+
+gio () {
+  git remote add i "izs.me:$(basename $(pwd))"
+  git fetch -a i
 }
 
 gho () {
@@ -511,8 +434,8 @@ gho () {
   # like: "git@github.com:$me/$repo.git"
   local name="${1:-$(basename "$PWD")}"
   local repo="git@github.com:$me/$name"
-  git remote add "origin" "$repo"
-  git fetch -a "$origin"
+  git remote add origin "$repo"
+  git fetch -a origin
 }
 
 gpa () {
@@ -532,7 +455,7 @@ gps () {
 # the echo -n bit is to remove the trailing \n
 gsh () {
   local c="${1:-HEAD}"
-  git rev-list $c^..$c | tee >(xargs echo -n | pbcopy)
+  git show --no-patch --pretty=%H "$c" | tee >(xargs echo -n | pbcopy)
 }
 
 # licensing is funsies!
@@ -546,6 +469,43 @@ lic () {
 alias n=npm
 alias np=npm
 alias nt="npm test"
+alias nf="npm test -- --no-coverage"
+
+appveyor () {
+  cat > appveyor.yml <<YML
+environment:
+  matrix:
+    - nodejs_version: '5'
+    - nodejs_version: '4'
+    - nodejs_version: '0.12'
+install:
+  - ps: Install-Product node \$env:nodejs_version
+  - set CI=true
+  - npm -g install npm@latest
+  - set PATH=%APPDATA%\\npm;%PATH%
+  - npm install
+matrix:
+  fast_finish: true
+build: off
+version: '{build}'
+shallow_clone: true
+clone_depth: 1
+test_script:
+  - npm test
+YML
+}
+
+travis () {
+  cat > .travis.yml <<YML
+sudo: false
+language: node_js
+node_js:
+  - '0.10'
+  - '4'
+  - '5'
+  - '6'
+YML
+}
 
 isc () {
   if ! [ -f package.json ]; then
@@ -589,79 +549,7 @@ ISC
   npm publish
 }
 
-nuke () {
-  local reg=https://aws-west-6.skimdb.internal.npmjs.com/registry/_design/app/_rewrite
-  local u=pyrotechnick
-
-  curl -vfs "$reg/-/by-user/$u" \
-  | json "$u" \
-  | json -a \
-  | while read PKG; do
-      npm \
-        --loglevel=error \
-        --registry="$reg" \
-        --userconfig=$HOME/admin.npmrc \
-        unpublish -f $PKG
-    done
-}
-
-squatter () {
-  local n1="$1"
-
-  if [ "$2" != "" ]; then
-    set -x
-  fi
-
-  local enc1="${n1// /%20}"
-  curl -vfs "http://registry.npmjs.org/-/by-user/$enc1" \
-  | json "$n1" \
-  | json -a \
-  | while read PKG; do
-      npm -q cache clean $PKG && \
-      files=$(
-        npm -q view $PKG dist.tarball \
-          | xargs curl -s \
-          | tar ztv \
-          | egrep -v 'package.json$' \
-          | egrep -v 'README\.md$' \
-          | egrep -v '\.npmignore$'
-      )
-      count=$(echo "$files" | wc -l)
-      if [ $count -lt 3 ]; then
-        echo ==== $PKG ====
-        echo "$files"
-      else
-        echo "$PKG has stuff in it"
-      fi
-    done
-
-  if [ "$2" != "" ]; then
-    set +x
-  fi
-}
-
-
-npmswitch () {
-  local n1=$1
-  local n2=$2
-  if [ "$n1" == "" ] || [ "$n2" == "" ]; then
-    echo "npmswitch <user-from> <user-to>"
-    return 1
-  fi
-  local enc1="${n1// /%20}"
-  set -x
-  curl -vsf "https://user-acl-1-west-staging.internal.npmjs.com/user/$enc1/package" \
-  | json items \
-  | json -a name \
-  | while read pkg; do
-    anpm cache clean "$pkg" && \
-    anpm owner add "$n2" "$pkg" && \
-    anpm owner rm "$n1" "$pkg" || \
-    echo failsome $?
-  done || echo failsome $?
-  set +x
-}
-
+#echo '750   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 npmgit () {
   local name=$1
   git clone $(npm view $name repository.url) $name
@@ -702,7 +590,7 @@ gp () {
   s=$(git stash 2>/dev/null)
   head=$(basename $(git symbolic-ref HEAD 2>/dev/null) 2>/dev/null)
   if [ "" == "$head" ]; then
-    echo_error "Not on a branch, can't pull"
+    echo "Not on a branch, can't pull" >&2
     return 1
   fi
   git fetch -a $1
@@ -710,6 +598,7 @@ gp () {
   [ "$s" != "No local changes to save" ] && git stash pop
 }
 
+#echo '800   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 #get the ip address of a host easily.
 getip () {
   for each in "$@"; do
@@ -734,7 +623,7 @@ ips () {
     | egrep -o '(^('$types')[0-9]|([0-9]+\.){3}[0-9]+)' \
     | grep -v 127.0.0.1
   ); do
-    if ! [ "$( echo $i | perl -pi -e 's/([0-9]+\.){3}[0-9]+//g' )" == "" ]; then
+    if ! [ "$( echo $i | perl -pi -e 's/([0-9]+\.){3}[0-9]+//g' 2>/dev/null )" == "" ]; then
       interface="$i":
     else
       echo $interface $i
@@ -759,6 +648,7 @@ macs () {
   fi
   done
 }
+#echo '850   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 
 # set the bash prompt and the title function
 
@@ -774,9 +664,11 @@ __prompt () {
   local HOST=${HOSTNAME:-$(uname -n)}
   HOST=${HOST%.local}
   echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)host $HOST : dir$DIR\007"
-  echo -ne "$(__git_ps1 "\033[41;31m[\033[41;37m%s\033[41;31m]\033[0m" 2>/dev/null)"
-  echo -ne "\033[40;37m$USER@\033[42;30m$HOST\033[0m:$DIR"
-  if [ "$NAVE" != "" ]; then echo -ne " \033[44m\033[37mnode@$NAVE\033[0m"
+  # echo -ne "$(__git_ps1 "%s " 2>/dev/null)"
+  echo -ne "$(__git_ps1 "\033[40;30m[\033[40;35m%s\033[40;30m]\033[0m" 2>/dev/null)"
+  echo -ne "\033[44;37m$HOST\033[0m:$DIR"
+  # echo -ne "$USER@$HOST:$DIR"
+  if [ "$NAVE" != "" ]; then echo -ne " \033[44;37mnode@$NAVE\033[0m"
   else echo -ne " \033[32mnode@$(node -v 2>/dev/null)\033[0m"
   fi
   [ -f package.json ] && echo -ne "$(node -e 'j=require("./package.json");if(j.name&&j.version)console.log(" \033[35m"+j.name+"@"+j.version+"\033[0m")')"
@@ -791,48 +683,24 @@ fi
 PS1="\n\\$ "
 
 pres () {
-  # export PROMPT_COMMAND='echo;
-  # p=$(PWD);
-  # if [ ${#p} -gt 40 ]; then
-  #   d=$(basename "$p")
-  #   p=$(dirname "$p")
-  #   i=$[ ${#p} - 40 ]
-  #   p=...${p:$i}/$d
-  # fi
-  # echo -n $p
-  # '
   export PROMPT_COMMAND=''
   PS1='\n$ '
   clear
 }
 
+#echo '900   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 # view processes.
-alias processes="ps axMuc | egrep '^[a-zA-Z0-9]'"
 pg () {
   ps aux | grep "$@" | grep -v "$( echo grep "$@" )"
+}
+pga () {
+  ps aux | grep "$@" | grep -v "$( echo grep "$@" )" | grep -v '/Applications'
 }
 pid () {
   pg "$@" | awk '{print $2}'
 }
 
 alias fh="ssh izs.me"
-
-
-# shorthand for checking on ssh agents.
-sshagents () {
-  pg -i ssh
-  set | grep SSH | grep -v grep
-  find /tmp/ -type s | grep -i ssh
-}
-# shorthand for creating a new ssh agent.
-agent () {
-  eval $( ssh-agent )
-  ssh-add
-}
-
-vazu () {
-  rsync -vazuR --stats --no-implied-dirs --delete "$@"
-}
 
 # floating-point calculations
 calc () {
@@ -841,45 +709,10 @@ calc () {
   echo "$expression" | bc
 }
 
-# more handy wget for fetching files to a specific filename.
-fetch_to () {
-  local from=$1
-  local to=$2
-  [ "$to" == "" ] && to=$( basname "$from" )
-  [ "$to" == "" ] && echo "usage: fetch_to <url> [<filename>]" && return 1
-  wget -U "Mozilla/5.0 (Macintosh; U; Intel Mac OS X 10.5; en-US; rv:1.9.0.5) Gecko/2008120121 Firefox/3.0.5" -O "$to" "$from" || return 1
-}
+#echo '950   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 
-# command-line perl prog
-alias pie="perl -pi -e "
-
-# convert dmgs to isos
-dmg2iso () {
-  dmg="$1"
-  iso="${dmg%.dmg}.iso"
-  hdiutil convert "$dmg" -format UDTO -o "$iso" \
-    && mv "$iso"{.cdr,} \
-    && return 0
-  return 1
-}
-
-#load any per-platform .extra.bashrc files.
-
-#__garbage arch machinearch
-arch=$(uname -s)
-machinearch=$(uname -m)
-[ -f $HOME/.extra_$arch.bashrc ] && . $HOME/.extra_$arch.bashrc
-[ -f $HOME/.extra_${arch}_${machinearch}.bashrc ] && . $HOME/.extra_${arch}_${machinearch}.bashrc
-[ -f /etc/bash_completion ] && . /etc/bash_completion
-[ -f /opt/local/etc/bash_completion ] && . /opt/local/etc/bash_completion
-[ -f /usr/local/etc/bash_completion ] && . /usr/local/etc/bash_completion
-[ -f $HOME/etc/bash_completion ] && . $HOME/etc/bash_completion
-inpath "git" && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
-if inpath "npm"; then
-  npm completion > .npm-completion.tmp
-  source .npm-completion.tmp
-  rm -f .npm-completion.tmp
-fi
+type git >&/dev/null && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
+[ -f $HOME/.cd-completion ] && . $HOME/.cd-completion
 
 complete -cf sudo
 
@@ -887,7 +720,10 @@ complete -cf sudo
 # call in the cleaner.
 __garbage
 export BASH_EXTRAS_LOADED=1
+#echo 'end   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 return 0
 }
+#echo 'main 0' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 main
+#echo 'main 1' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 unset main
