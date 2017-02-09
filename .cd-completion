@@ -1,0 +1,403 @@
+#!/bin/bash
+
+# This function turns on "-o filenames" behavior dynamically. It is present
+# for bash < 4 reasons. See http://bugs.debian.org/272660#64 for info about
+# the bash < 4 compgen hack.
+_compopt_o_filenames()
+{
+    # We test for compopt availability first because directly invoking it on
+    # bash < 4 at this point may cause terminal echo to be turned off for some
+    # reason, see https://bugzilla.redhat.com/653669 for more info.
+    type compopt &>/dev/null && compopt -o filenames 2>/dev/null || \
+        compgen -f /non-existing-dir/ >/dev/null
+}
+
+# This function quotes the argument in a way so that readline dequoting
+# results in the original argument.  This is necessary for at least
+# `compgen' which requires its arguments quoted/escaped:
+#
+#     $ ls "a'b/"
+#     c
+#     $ compgen -f "a'b/"       # Wrong, doesn't return output
+#     $ compgen -f "a\'b/"      # Good (bash-4)
+#     a\'b/c
+#     $ compgen -f "a\\\\\'b/"  # Good (bash-3)
+#     a\'b/c
+#
+# On bash-3, special characters need to be escaped extra.  This is
+# unless the first character is a single quote (').  If the single
+# quote appears further down the string, bash default completion also
+# fails, e.g.:
+#
+#     $ ls 'a&b/'
+#     f
+#     $ foo 'a&b/<TAB>  # Becomes: foo 'a&b/f'
+#     $ foo a'&b/<TAB>  # Nothing happens
+#
+# See also:
+# - http://lists.gnu.org/archive/html/bug-bash/2009-03/msg00155.html
+# - http://www.mail-archive.com/bash-completion-devel@lists.alioth.\
+#   debian.org/msg01944.html
+# @param $1  Argument to quote
+# @param $2  Name of variable to return result to
+_quote_readline_by_ref()
+{
+    if [[ ${1:0:1} == "'" ]]; then
+        if [[ ${BASH_VERSINFO[0]} -ge 4 ]]; then
+            # Leave out first character
+            printf -v $2 %s "${1:1}"
+        else
+            # Quote word, leaving out first character
+            printf -v $2 %q "${1:1}"
+            # Double-quote word (bash-3)
+            printf -v $2 %q ${!2}
+        fi
+    elif [[ ${BASH_VERSINFO[0]} -le 3 && ${1:0:1} == '"' ]]; then
+        printf -v $2 %q "${1:1}"
+    else
+        printf -v $2 %q "$1"
+    fi
+
+    # If result becomes quoted like this: $'string', re-evaluate in order to
+    # drop the additional quoting.  See also: http://www.mail-archive.com/
+    # bash-completion-devel@lists.alioth.debian.org/msg01942.html
+    [[ ${!2:0:1} == '$' ]] && eval $2=${!2}
+} # _quote_readline_by_ref()
+
+
+# Perform tilde (~) completion
+# @return  True (0) if completion needs further processing, 
+#          False (> 0) if tilde is followed by a valid username, completions
+#          are put in COMPREPLY and no further processing is necessary.
+_tilde() {
+    local result=0
+    # Does $1 start with tilde (~) and doesn't contain slash (/)?
+    if [[ ${1:0:1} == "~" && $1 == ${1//\/} ]]; then
+        _compopt_o_filenames
+        # Try generate username completions
+        COMPREPLY=( $( compgen -P '~' -u "${1#\~}" ) )
+        result=${#COMPREPLY[@]}
+    fi
+    return $result
+}
+
+
+# This function performs file and directory completion. It's better than
+# simply using 'compgen -f', because it honours spaces in filenames.
+# @param $1  If `-d', complete only on directories.  Otherwise filter/pick only
+#            completions with `.$1' and the uppercase version of it as file
+#            extension.
+#
+_filedir()
+{
+    local i IFS=$'\n' xspec
+
+    _tilde "$cur" || return 0
+
+    local -a toks
+    local quoted tmp
+
+    _quote_readline_by_ref "$cur" quoted
+    toks=( ${toks[@]-} $(
+        compgen -d -- "$quoted" | {
+            while read -r tmp; do
+                # TODO: I have removed a "[ -n $tmp ] &&" before 'printf ..',
+                #       and everything works again. If this bug suddenly
+                #       appears again (i.e. "cd /b<TAB>" becomes "cd /"),
+                #       remember to check for other similar conditionals (here
+                #       and _filedir_xspec()). --David
+                printf '%s\n' $tmp
+            done
+        }
+    ))
+
+    if [[ "$1" != -d ]]; then
+        # Munge xspec to contain uppercase version too
+        [[ ${BASH_VERSINFO[0]} -ge 4 ]] && \
+            xspec=${1:+"!*.@($1|${1^^})"} || \
+            xspec=${1:+"!*.@($1|$(printf %s $1 | tr '[:lower:]' '[:upper:]'))"}
+        toks=( ${toks[@]-} $( compgen -f -X "$xspec" -- $quoted) )
+    fi
+    [ ${#toks[@]} -ne 0 ] && _compopt_o_filenames
+
+    COMPREPLY=( "${COMPREPLY[@]}" "${toks[@]}" )
+} # _filedir()
+
+
+# This function checks whether a given readline variable
+# is `on'.
+#
+_rl_enabled()
+{
+    [[ "$( bind -v )" = *$1+([[:space:]])on* ]]
+}
+
+
+# Assign variables one scope above the caller
+# Usage: local varname [varname ...] && 
+#        _upvars [-v varname value] | [-aN varname [value ...]] ...
+# Available OPTIONS:
+#     -aN  Assign next N values to varname as array
+#     -v   Assign single value to varname
+# Return: 1 if error occurs
+# See: http://fvue.nl/wiki/Bash:_Passing_variables_by_reference
+_upvars() {
+    if ! (( $# )); then
+        echo "${FUNCNAME[0]}: usage: ${FUNCNAME[0]} [-v varname"\
+            "value] | [-aN varname [value ...]] ..." 1>&2
+        return 2
+    fi
+    while (( $# )); do
+        case $1 in
+            -a*)
+                # Error checking
+                [[ ${1#-a} ]] || { echo "bash: ${FUNCNAME[0]}: \`$1': missing"\
+                    "number specifier" 1>&2; return 1; }
+                printf %d "${1#-a}" &> /dev/null || { echo "bash:"\
+                    "${FUNCNAME[0]}: \`$1': invalid number specifier" 1>&2
+                    return 1; }
+                # Assign array of -aN elements
+                [[ "$2" ]] && unset -v "$2" && eval $2=\(\"\${@:3:${1#-a}}\"\) && 
+                shift $((${1#-a} + 2)) || { echo "bash: ${FUNCNAME[0]}:"\
+                    "\`$1${2+ }$2': missing argument(s)" 1>&2; return 1; }
+                ;;
+            -v)
+                # Assign single value
+                [[ "$2" ]] && unset -v "$2" && eval $2=\"\$3\" &&
+                shift 3 || { echo "bash: ${FUNCNAME[0]}: $1: missing"\
+                "argument(s)" 1>&2; return 1; }
+                ;;
+            *)
+                echo "bash: ${FUNCNAME[0]}: $1: invalid option" 1>&2
+                return 1 ;;
+        esac
+    done
+}
+
+
+# Reassemble command line words, excluding specified characters from the
+# list of word completion separators (COMP_WORDBREAKS).
+# @param $1 chars  Characters out of $COMP_WORDBREAKS which should
+#     NOT be considered word breaks. This is useful for things like scp where
+#     we want to return host:path and not only path, so we would pass the
+#     colon (:) as $1 here.
+# @param $2 words  Name of variable to return words to
+# @param $3 cword  Name of variable to return cword to
+#
+__reassemble_comp_words_by_ref() {
+    local exclude i j ref
+    # Exclude word separator characters?
+    if [[ $1 ]]; then
+        # Yes, exclude word separator characters;
+        # Exclude only those characters, which were really included
+        exclude="${1//[^$COMP_WORDBREAKS]}"
+    fi
+        
+    # Default to cword unchanged
+    eval $3=$COMP_CWORD
+    # Are characters excluded which were former included?
+    if [[ $exclude ]]; then
+        # Yes, list of word completion separators has shrunk;
+        # Re-assemble words to complete
+        for (( i=0, j=0; i < ${#COMP_WORDS[@]}; i++, j++)); do
+            # Is current word not word 0 (the command itself) and is word not
+            # empty and is word made up of just word separator characters to be
+            # excluded?
+            while [[ $i -gt 0 && ${COMP_WORDS[$i]} && 
+                ${COMP_WORDS[$i]//[^$exclude]} == ${COMP_WORDS[$i]} 
+            ]]; do
+                [ $j -ge 2 ] && ((j--))
+                # Append word separator to current word
+                ref="$2[$j]"
+                eval $2[$j]=\${!ref}\${COMP_WORDS[i]}
+                # Indicate new cword
+                [ $i = $COMP_CWORD ] && eval $3=$j
+                # Indicate next word if available, else end *both* while and for loop
+                (( $i < ${#COMP_WORDS[@]} - 1)) && ((i++)) || break 2
+            done
+            # Append word to current word
+            ref="$2[$j]"
+            eval $2[$j]=\${!ref}\${COMP_WORDS[i]}
+            # Indicate new cword
+            [[ $i == $COMP_CWORD ]] && eval $3=$j
+        done
+    else
+        # No, list of word completions separators hasn't changed;
+        eval $2=\( \"\${COMP_WORDS[@]}\" \)
+    fi
+} # __reassemble_comp_words_by_ref()
+
+# @param $1 exclude  Characters out of $COMP_WORDBREAKS which should NOT be
+#     considered word breaks. This is useful for things like scp where
+#     we want to return host:path and not only path, so we would pass the
+#     colon (:) as $1 in this case.  Bash-3 doesn't do word splitting, so this
+#     ensures we get the same word on both bash-3 and bash-4.
+# @param $2 words  Name of variable to return words to
+# @param $3 cword  Name of variable to return cword to
+# @param $4 cur  Name of variable to return current word to complete to
+# @see ___get_cword_at_cursor_by_ref()
+__get_cword_at_cursor_by_ref() {
+    local cword words=()
+    __reassemble_comp_words_by_ref "$1" words cword
+
+    local i cur2
+    local cur="$COMP_LINE"
+    local index="$COMP_POINT"
+    for (( i = 0; i <= cword; ++i )); do
+        while [[
+            # Current word fits in $cur?
+            "${#cur}" -ge ${#words[i]} &&
+            # $cur doesn't match cword?
+            "${cur:0:${#words[i]}}" != "${words[i]}"
+        ]]; do
+            # Strip first character
+            cur="${cur:1}"
+            # Decrease cursor position
+            ((index--))
+        done
+
+        # Does found word matches cword?
+        if [[ "$i" -lt "$cword" ]]; then
+            # No, cword lies further;
+            local old_size="${#cur}"
+            cur="${cur#${words[i]}}"
+            local new_size="${#cur}"
+            index=$(( index - old_size + new_size ))
+        fi
+    done
+
+    if [[ "${words[cword]:0:${#cur}}" != "$cur" ]]; then
+        # We messed up. At least return the whole word so things keep working
+        cur2=${words[cword]}
+    else
+        cur2=${cur:0:$index}
+    fi
+
+    local "$2" "$3" "$4" && 
+        _upvars -a${#words[@]} $2 "${words[@]}" -v $3 "$cword" -v $4 "$cur2"
+}
+
+# Get the word to complete and optional previous words.
+# This is nicer than ${COMP_WORDS[$COMP_CWORD]}, since it handles cases
+# where the user is completing in the middle of a word.
+# (For example, if the line is "ls foobar",
+# and the cursor is here -------->   ^
+# Also one is able to cross over possible wordbreak characters.
+# Usage: _get_comp_words_by_ref [OPTIONS] [VARNAMES]
+# Available VARNAMES:
+#     cur         Return cur via $cur
+#     prev        Return prev via $prev
+#     words       Return words via $words
+#     cword       Return cword via $cword
+#
+# Available OPTIONS:
+#     -n EXCLUDE  Characters out of $COMP_WORDBREAKS which should NOT be 
+#                 considered word breaks. This is useful for things like scp
+#                 where we want to return host:path and not only path, so we
+#                 would pass the colon (:) as -n option in this case.  Bash-3
+#                 doesn't do word splitting, so this ensures we get the same
+#                 word on both bash-3 and bash-4.
+#     -c VARNAME  Return cur via $VARNAME
+#     -p VARNAME  Return prev via $VARNAME
+#     -w VARNAME  Return words via $VARNAME
+#     -i VARNAME  Return cword via $VARNAME
+#
+# Example usage:
+#
+#    $ _get_comp_words_by_ref -n : cur prev
+#
+_get_comp_words_by_ref()
+{
+    local exclude flag i OPTIND=1
+    local cur cword words=()
+    local upargs=() upvars=() vcur vcword vprev vwords
+
+    while getopts "c:i:n:p:w:" flag "$@"; do
+        case $flag in
+            c) vcur=$OPTARG ;;
+            i) vcword=$OPTARG ;;
+            n) exclude=$OPTARG ;;
+            p) vprev=$OPTARG ;;
+            w) vwords=$OPTARG ;;
+        esac
+    done
+    while [[ $# -ge $OPTIND ]]; do 
+        case ${!OPTIND} in
+            cur)   vcur=cur ;;
+            prev)  vprev=prev ;;
+            cword) vcword=cword ;;
+            words) vwords=words ;;
+            *) echo "bash: $FUNCNAME(): \`${!OPTIND}': unknown argument" \
+                1>&2; return 1
+        esac
+        let "OPTIND += 1"
+    done
+
+    __get_cword_at_cursor_by_ref "$exclude" words cword cur
+
+    [[ $vcur   ]] && { upvars+=("$vcur"  ); upargs+=(-v $vcur   "$cur"  ); }
+    [[ $vcword ]] && { upvars+=("$vcword"); upargs+=(-v $vcword "$cword"); }
+    [[ $vprev  ]] && { upvars+=("$vprev" ); upargs+=(-v $vprev 
+        "${words[cword - 1]}"); }
+    [[ $vwords ]] && { upvars+=("$vwords"); upargs+=(-a${#words[@]} $vwords
+        "${words[@]}"); }
+
+    (( ${#upvars[@]} )) && local "${upvars[@]}" && _upvars "${upargs[@]}"
+}
+
+
+# This meta-cd function observes the CDPATH variable, so that cd additionally
+# completes on directories under those specified in CDPATH.
+#
+_cd()
+{
+    local cur IFS=$'\n' i j k
+    _get_comp_words_by_ref cur
+
+    # try to allow variable completion
+    if [[ "$cur" == ?(\\)\$* ]]; then
+        COMPREPLY=( $( compgen -v -P '$' -- "${cur#?(\\)$}" ) )
+        return 0
+    fi
+
+    _compopt_o_filenames
+
+    # Use standard dir completion if no CDPATH or parameter starts with /,
+    # ./ or ../
+    if [[ -z "${CDPATH:-}" || "$cur" == ?(.)?(.)/* ]]; then
+        _filedir -d
+        return 0
+    fi
+
+    local -r mark_dirs=$(_rl_enabled mark-directories && echo y)
+    local -r mark_symdirs=$(_rl_enabled mark-symlinked-directories && echo y)
+
+    # we have a CDPATH, so loop on its contents
+    for i in ${CDPATH//:/$'\n'}; do
+        # create an array of matched subdirs
+        k="${#COMPREPLY[@]}"
+        for j in $( compgen -d $i/$cur ); do
+            if [[ ( $mark_symdirs && -h $j || $mark_dirs && ! -h $j ) && ! -d ${j#$i/} ]]; then
+                j="${j}/"
+            fi
+            COMPREPLY[k++]=${j#$i/}
+        done
+    done
+
+    _filedir -d
+
+    if [[ ${#COMPREPLY[@]} -eq 1 ]]; then
+        i=${COMPREPLY[0]}
+        if [[ "$i" == "$cur" && $i != "*/" ]]; then
+            COMPREPLY[0]="${i}/"
+        fi
+    fi
+
+    return 0
+}
+
+if shopt -q cdable_vars; then
+    complete -v -F _cd -o nospace cd
+else
+    complete -F _cd -o nospace cd
+fi
