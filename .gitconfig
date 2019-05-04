@@ -1,8 +1,10 @@
 [user]
   # you probably want to change this bit.
-	name = isaacs
-	email = i@izs.me
+  name = isaacs
+  email = i@izs.me
   signingkey = 0x6C481CF6
+	fullname = Isaac Z. Schlueter
+	website = https://izs.me
 [github]
   user = isaacs
 [alias]
@@ -29,26 +31,52 @@
   branch = auto
   diff = auto
   status = auto
-	ui = true
+  ui = true
 [color "branch"]
   current = yellow reverse
   local = yellow
   remote = green
 [color "diff"]
-  meta = yellow bold
+  meta = yellow
   frag = magenta bold
-  old = red bold
-  new = green bold
+  commit = yellow
+  whitespace = red reverse
+  old = 255 52
+  new = 255 22
+[color "diff-highlight"]
+  oldHighlight = 52 218
+  oldNormal = 255 52
+  newNormal = 255 22
+  newHighlight = 22 194
 [color "status"]
   added = yellow
   changed = green
+[diff-so-fancy]
+  markEmptyLines = false
+  stripLeadingSymbols = true
 [difftool]
   prompt = false
 [diff]
   tool = vimdiff
 [merge]
   tool = vimdiff
+  conflictstyle = diff3
 [push]
   default = current
 [core]
-	excludesfile = /Users/isaacs/.gitignore
+	excludesfile = /Users/isaacs/.gitignore_global
+  pager = diff-so-fancy | less --tabs=4 -RFX
+[filter "lfs"]
+  clean = git-lfs clean -- %f
+  smudge = git-lfs smudge -- %f
+  process = git-lfs filter-process
+  required = true
+[gpg]
+  program = /usr/local/bin/krgpg
+[commit]
+  gpgSign = true
+[tag]
+  forceSignAnnotated = true
+[merge "npm-merge-driver"]
+	name = automatically merge npm lockfiles
+	driver = npx npm-merge-driver merge %A %O %B %P

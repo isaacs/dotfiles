@@ -11,7 +11,10 @@
 # a few files to rsync over to a new host for me to use it comfortably.
 ######
 main () {
-  #echo 'start ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
+
+socks () {
+  ssh -ND 8527 isaacs@izs.me
+}
 
 # I actually frequently forget this.
 age () {
@@ -25,6 +28,10 @@ JS
 
 now () {
   node -p 'new Date().toISOString()'
+}
+
+dy () {
+  echo "date: $(now)"
 }
 
 # Why this is not exported in OS X, I have no idea
@@ -52,9 +59,7 @@ __garbage () {
 }
 __garbage __garbage
 __garbage __set_path
-#echo '75    ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 __set_path () {
-#echo 'sp 0  ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
   local var="$1"
   local orig=$(eval 'echo $'$var)
   orig=" ${orig//:/ } "
@@ -80,14 +85,11 @@ __set_path () {
   # nave and other subshell programs use.
   # p="$orig $p"
   export $var=$(p=$(echo $p); echo ${p// /:})
-#echo 'sp 1  ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 }
 
 __garbage __form_paths
-#echo '105   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 local path_roots=( $HOME/ $HOME/local/ /usr/local/ /opt/local/ /usr/ /opt/ / )
 __form_paths () {
-#echo 'fp 0  ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
   local r p paths
   paths=""
   for r in "${path_roots[@]}"; do
@@ -96,9 +98,7 @@ __form_paths () {
     done
   done
   echo ${paths/:/} # remove the first :
-#echo 'fp 1  ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 }
-#echo '119   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 
 # mac tar fixing
 export COPYFILE_DISABLE=true
@@ -145,16 +145,15 @@ if ! [ -z "$BASH" ]; then
     histappend histverify histreedit \
     cdspell expand_aliases cmdhist globasciiranges \
     hostcomplete no_empty_cmd_completion nocaseglob \
-    checkhash extglob globstar extdebug dirspell
+    checkhash extglob globstar dirspell
 fi
 
-#echo '187   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 # A little hack to add forward-and-back traversal with cd
 alias ..="cd .."
+alias cd..="cd .."
 alias -- -="cd -"
 # alias cd='exec nave auto'
 
-#echo '250   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 export SVN_RSH=ssh
 export RSYNC_RSH=ssh
 export INPUTRC=$HOME/.inputrc
@@ -163,6 +162,9 @@ export JOBS=1
 # list of editors, by preference.
 alias edit="vim"
 alias e="vim"
+alias vvim=vim
+alias vivm=vim
+alias vmi=vim
 ew () {
   edit $(which $1)
 }
@@ -391,7 +393,6 @@ ghadd () {
   git fetch -a "$nick"
 }
 
-#echo '504   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 
 nresolve () {
   node -p 'require.resolve("'$1'")'
@@ -459,25 +460,21 @@ lic () {
   isc
 }
 
-#alias an="npm --userconfig=$HOME/admin.npmrc"
-#alias anp="npm --userconfig=$HOME/admin.npmrc"
-#alias anpm="npm --userconfig=$HOME/admin.npmrc"
 alias n=npm
 alias np=npm
-alias nt="npm test"
+alias nt="npm test --"
 alias nf="npm test -- --no-coverage"
+alias ns="npm run snap --"
+# alias nc="npx npmc"
 
 appveyor () {
   cat > appveyor.yml <<YML
 environment:
   matrix:
-    - nodejs_version: '5'
-    - nodejs_version: '4'
-    - nodejs_version: '0.12'
+    - nodejs_version: '8'
+    - nodejs_version: '6'
 install:
   - ps: Install-Product node \$env:nodejs_version
-  - set CI=true
-  - npm -g install npm@latest
   - set PATH=%APPDATA%\\npm;%PATH%
   - npm install
 matrix:
@@ -491,15 +488,38 @@ test_script:
 YML
 }
 
+scripts () {
+  node -e '
+    p = require("./package.json")
+    p.scripts.test = "tap test/*.js --100 -J",
+    p.scripts.preversion = "npm test",
+    p.scripts.postversion = "npm publish",
+    p.scripts.postpublish = "git push origin --all; git push origin --tags"
+    p = JSON.stringify(p, null, 2) + "\n"
+    require("fs").writeFileSync("./package.json", p)
+  '
+}
+
 travis () {
   cat > .travis.yml <<YML
-sudo: false
 language: node_js
+
 node_js:
-  - '0.10'
-  - '4'
-  - '5'
-  - '6'
+  - node
+  - 12
+  - 10
+  - 8
+
+os:
+  - linux
+  - windows
+
+cache:
+  directories:
+    - \$HOME/.npm
+
+notifications:
+  email: false
 YML
 }
 
@@ -512,7 +532,7 @@ isc () {
   cat >LICENSE <<ISC
 The ISC License
 
-Copyright (c) Isaac Z. Schlueter and Contributors
+Copyright (c) npm, Inc. and Contributors
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -545,7 +565,6 @@ ISC
   npm publish
 }
 
-#echo '750   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 npmgit () {
   local name=$1
   git clone $(npm view $name repository.url) $name
@@ -594,7 +613,6 @@ gp () {
   [ "$s" != "No local changes to save" ] && git stash pop
 }
 
-#echo '800   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 #get the ip address of a host easily.
 getip () {
   for each in "$@"; do
@@ -644,11 +662,8 @@ macs () {
   fi
   done
 }
-#echo '850   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 
 # set the bash prompt and the title function
-
-
 __prompt () {
   echo -ne "\033[m";history -a
   echo ""
@@ -659,24 +674,32 @@ __prompt () {
   local DIR=${PWD/$HOME/\~}
   local HOST=${HOSTNAME:-$(uname -n)}
   HOST=${HOST%.local}
-  echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)host $HOST : dir$DIR\007"
+  echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)${DIR/\~\/dev\//}\007"
   # echo -ne "$(__git_ps1 "%s " 2>/dev/null)"
-  echo -ne "$(__git_ps1 "\033[40;35m%s\033[40;30m>\033[0m" 2>/dev/null)"
+  echo -ne "$(__git_ps1 "\033[40;35m%s\033[40;30m\033[0m " 2>/dev/null)"
   echo -ne "\033[44;37m$HOST\033[0m:$DIR"
   # echo -ne "$USER@$HOST:$DIR"
   if [ "$NAVE" != "" ]; then echo -ne " \033[44;37mnode@$NAVE\033[0m"
   else echo -ne " \033[32mnode@$(node -v 2>/dev/null)\033[0m"
   fi
+  echo ""
   # [ -f package.json ] && echo -ne "$(node -e 'j=require("./package.json");if(j.name&&j.version)console.log(" \033[35m"+j.name+"@"+j.version+"\033[0m")')"
 }
 
-if [ "$PROMPT_COMMAND" = "" ]; then
-  export PROMPT_COMMAND='__prompt'
+if [ "$ITERM_SHELL_INTEGRATION_INSTALLED" == "Yes" ]; then
+  if ! [[ "${precmd_functions[@]}" == *"__prompt"* ]]; then
+    precmd_functions+=(__prompt)
+  fi
+  PROMPT_COMMAND="__bp_precmd_invoke_cmd; __bp_interactive_mode"
+elif [ "$PROMPT_COMMAND" = "" ]; then
+  export PROMPT_COMMAND='__prompt;'
+elif [[ "$PROMPT_COMMAND" != *"__prompt"* ]]; then
+  export PROMPT_COMMAND="${PROMPT_COMMAND}; __prompt;"
 fi
 
 #this part gets repeated when you tab to see options
 #PROMPT_COMMAND=
-PS1="\n\\$ "
+PS1="\\$ "
 
 pres () {
   export PROMPT_COMMAND=''
@@ -684,7 +707,6 @@ pres () {
   clear
 }
 
-#echo '900   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 # view processes.
 pg () {
   ps aux | grep "$@" | grep -v "$( echo grep "$@" )"
@@ -705,21 +727,35 @@ calc () {
   echo "$expression" | bc
 }
 
-#echo '950   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 
 type git >&/dev/null && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
 [ -f $HOME/.cd-completion ] && . $HOME/.cd-completion
 
-complete -cf sudo
+_npm_completion () {
+  local words cword
+  if type _get_comp_words_by_ref &>/dev/null; then
+    _get_comp_words_by_ref -n = -n @ -w words -i cword
+  else
+    cword="$COMP_CWORD"
+    words=("${COMP_WORDS[@]}")
+  fi
 
+  local si="$IFS"
+  IFS=$'\n' COMPREPLY=($(COMP_CWORD="$cword" \
+                         COMP_LINE="$COMP_LINE" \
+                         COMP_POINT="$COMP_POINT" \
+                         npm completion -- "${words[@]}" \
+                         2>/dev/null)) || return $?
+  IFS="$si"
+}
+complete -o default -F _npm_completion npm
+
+complete -cf sudo
 
 # call in the cleaner.
 __garbage
 export BASH_EXTRAS_LOADED=1
-#echo 'end   ' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 return 0
 }
-#echo 'main 0' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 main
-#echo 'main 1' $(/usr/local/bin/node -p 'Date.now()') >> ~/login_timing
 unset main
