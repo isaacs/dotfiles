@@ -100,11 +100,13 @@ __form_paths () {
   echo ${paths/:/} # remove the first :
 }
 
+export XDG_CONFIG_HOME=$HOME/.config
+
 # mac tar fixing
 export COPYFILE_DISABLE=true
 # homebrew="$HOME/.homebrew"
 local homebrew="/usr/local"
-__set_path PATH "$HOME/bin:$HOME/.rvm/bin::$homebrew/share/npm/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:$HOME/Library/Application Support/TextMate/Support/bin"
+__set_path PATH "$HOME/bin:$HOME/.rvm/bin:$homebrew/opt/ruby/bin:$homebrew/lib/ruby/gems/2.6.0/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:$HOME/Library/Application Support/TextMate/Support/bin"
 
 unset LD_LIBRARY_PATH
 __set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig"
