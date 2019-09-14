@@ -554,8 +554,7 @@ gpt () {
 }
 
 gps () {
-  gpa "$@"
-  gpt "$@"
+  git push --follow-tags "$@"
 }
 
 # Look up any ref's sha, and also copy it for pasting into bugs and such
