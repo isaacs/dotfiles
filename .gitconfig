@@ -41,6 +41,8 @@
   frag = magenta bold
   commit = yellow
   whitespace = red reverse
+  #old = 52 218
+  #new = 22 193
   old = 255 52
   new = 255 22
 [color "diff-highlight"]
@@ -75,6 +77,13 @@
 	program = /usr/local/bin/krgpg
 [tag]
 	forceSignAnnotated = true
-[merge "npm-merge-driver"]
-	name = automatically merge npm lockfiles
-	driver = npx npm-merge-driver merge %A %O %B %P
+  gpgSign = true
+;[merge "npm-merge-driver"]
+;	name = automatically merge npm lockfiles
+;	driver = npx npm-merge-driver merge %A %O %B %P
+[init]
+	defaultBranch = main
+[credential]
+	helper = osxkeychain
+[commit]
+	gpgsign = true

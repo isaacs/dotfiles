@@ -26,6 +26,16 @@ age / (1000 * 60 * 60 * 24 * 365.25)
 JS
 }
 
+show () {
+  for i in "$@"; do
+    if [ -f "$i" ]; then
+      bat "$i"
+    else
+      exa -a -T "$i"
+    fi
+  done
+}
+
 now () {
   node -p 'new Date().toISOString()'
 }
@@ -106,7 +116,7 @@ export XDG_CONFIG_HOME=$HOME/.config
 export COPYFILE_DISABLE=true
 # homebrew="$HOME/.homebrew"
 local homebrew="/usr/local"
-__set_path PATH "$HOME/bin:$HOME/.rvm/bin:$homebrew/opt/ruby/bin:$homebrew/lib/ruby/gems/2.6.0/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:$HOME/Library/Application Support/TextMate/Support/bin"
+__set_path PATH "/usr/local/bin:$PATH:$HOME/bin:$HOME/.cargo/bin:$HOME/.rvm/bin:$homebrew/opt/ruby/bin:$homebrew/lib/ruby/gems/2.6.0/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:/usr/local/opt/binutils/bin"
 
 unset LD_LIBRARY_PATH
 __set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig"
@@ -116,6 +126,22 @@ __set_path CDPATH ".:..:$HOME/dev/npm:$HOME/dev:$HOME/dev/js:$HOME"
 alias nodee=node
 alias ndoe=node
 alias noed=node
+alias nod=node
+
+# hack so I can write sloppy js objects and then convert to json in vim
+j () {
+  set -o pipefail
+  node -e '
+const inp = []
+const {runInNewContext} = require("vm")
+process.stdin.on("data", c => inp.push(c))
+process.stdin.on("end", () =>
+  console.log(runInNewContext("(" + Buffer.concat(inp).toString("utf8") + ")")))
+' | json
+  local ret=$?
+  set +o pipefail
+  return $ret
+}
 
 js () {
   local n=node
@@ -123,10 +149,9 @@ js () {
     echo "using ./node "$(./node --version)
     n=./$n
   fi
-  NODE_READLINE_SEARCH=1 $n "$@"
+  $n "$@"
 }
 
-export NODE_REPL_HISTORY_FILE=~/.node-history
 export HISTSIZE=10000
 export HISTFILESIZE=1000000000
 # I prefer to use : instead of ^ for history replacements
@@ -215,7 +240,11 @@ if [ "$TERM" != "dumb" ] && [ -f "$(which dircolors 2>/dev/null)" ]; then
 fi
 local ls_cmd="ls$lscolor"
 alias ls="$ls_cmd"
-alias la="$ls_cmd -Fla"
+if type exa &>/dev/null; then
+  alias la="exa -a --group-directories-first -s type -h -l --time-style=long-iso"
+else
+  alias la="$ls_cmd -Fla"
+fi
 alias lah="$ls_cmd -Flah"
 alias lal="$ls_cmd -FLlash"
 alias ll="$ls_cmd -Flsh"
@@ -230,7 +259,11 @@ wi () {
 }
 
 #make tree a little cooler looking.
-alias tree="tree -CFa -I 'rhel.*.*.package|.git' --dirsfirst"
+if type exa &>/dev/null; then
+  alias tree="exa -a -T"
+else
+  alias tree="tree -CFa -I 'rhel.*.*.package|.git' --dirsfirst"
+fi
 
 prof () {
   unset BASH_EXTRAS_LOADED
@@ -301,7 +334,7 @@ gam () {
 cpg () {
   rm *patch
   git format-patch HEAD^
-  gist *patch | pbcopy
+  gist *patch "$@"
 }
 
 alias gdiff='git diff --no-index --color'
@@ -314,7 +347,7 @@ pbgist () {
   pbpaste
 }
 
-gh () {
+gho () {
   local r=${1:-"origin"}
   if [ "$r" == "browse" ]; then
     r="origin"
@@ -331,161 +364,8 @@ gh () {
   open $o
 }
 
-pr2 () {
-  local url="$(prurl "$@")"
-  local num=$(basename $url)
-  local prpath="${url#git@github.com:}"
-  local repo=${prpath%/pull/$num}
-  local prweb="https://github.com/$prpath"
-  local root="$(prroot "$url")"
-  local ref="$(prref "$url" "$root")"
-  local curhead="$(git show --no-patch --pretty=%H HEAD)"
-  local curbranch="$(git rev-parse --abbrev-ref HEAD)"
-  local cleanlines
-  IFS=$'\n' cleanlines=($(git status -s -uno))
-  if [ ${#cleanlines[@]} -ne 0 ]; then
-    echo "working dir not clean" >&2
-    IFS=$'\n' echo "${cleanlines[@]}" >&2
-    echo "aborting PR merge" >&2
-  fi
-
-  # ok, ready to rock
-  branch=PR-$num
-  if [ "$curbranch" == "$branch" ]; then
-    echo "already on $branch, you're on your own" >&2
-    return 1
-  fi
-
-  exists=$(git show --no-patch --pretty=%H $branch 2>/dev/null)
-  if [ "$exists" == "" ]; then
-    git fetch origin pull/$num/head:$branch
-    git checkout $branch
-  else
-    git checkout $branch
-    git pull --rebase origin pull/$num/head
-  fi
-
-  # add the PR-URL to the last commit, after squashing
-
-  git rebase -i $curbranch # squash and test
-
-  if [ $? -eq 0 ]; then
-    pr2finish "${curbranch}"
-  else
-    echo "resolve conflicts and run pr2finish "'"'${curbranch}'"'
-  fi
-}
-
-pr2finish () {
-  local curbranch="$1"
-  local ref=$(cat .git/HEAD)
-  local prnum
-  case $ref in
-    "ref: refs/heads/PR-"*)
-      prnum=${ref#ref: refs/heads/PR-}
-      ;;
-    *)
-      echo "not on the PR-## branch any more!" >&2
-      return 1
-      ;;
-  esac
-
-  local me=$(git config github.user || git config user.name)
-  if [ "$me" == "" ]; then
-    echo "run 'git config --add github.user <username>'" >&2
-    return 1
-  fi
-
-  set -x
-
-  local url="$(prurl "$prnum")"
-  local num=$prnum
-  local prpath="${url#git@github.com:}"
-  local repo=${prpath%/pull/$num}
-  local prweb="https://github.com/$prpath"
-  local root="$(prroot "$url")"
-
-  local api="https://api.github.com/repos/${repo}/pulls/${num}"
-  local user=$(curl -s $api | json user.login)
-
-  local lastmsg="$(git log -1 --pretty=%B)"
-  local newmsg="${lastmsg}
-
-PR-URL: ${prweb}
-Credit: @${user}
-Close: #${num}
-Reviewed-by: @${me}
-"
-  git commit --amend -m "$newmsg"
-  git checkout $curbranch
-  git merge PR-${prnum} --ff-only
-  set +x
-}
-
-prurl () {
-  local url="$1"
-  if [ "$url" == "" ] && type pbpaste &>/dev/null; then
-    url="$(pbpaste)"
-  fi
-  if [[ "$url" =~ ^[0-9]+$ ]]; then
-    local us="$2"
-    if [ "$us" == "" ]; then
-      us="origin"
-    fi
-    local num="$url"
-    local o="$(git config --get remote.${us}.url)"
-    url="${o}"
-    url="${url#(git:\/\/|https:\/\/)}"
-    url="${url#git@}"
-    url="${url#github.com[:\/]}"
-    url="${url%.git}"
-    url="https://github.com/${url}/pull/$num"
-  fi
-  url=${url%/commits}
-  url=${url%/files}
-  url="$(echo $url | perl -p -e 's/#issuecomment-[0-9]+$//g')"
-
-  local p='^https:\/\/github.com\/[^\/]+\/[^\/]+\/pull\/[0-9]+$'
-  if ! [[ "$url" =~ $p ]]; then
-    echo "Usage:"
-    echo "  pr <pull req url>"
-    echo "  pr <pull req number> [<remote name>=origin]"
-    type pbpaste &>/dev/null &&
-      echo "(will read url/id from clipboard if not specified)"
-    return 1
-  fi
-  url="${url/https:\/\/github\.com\//git@github.com:}"
-  echo "$url"
-}
-
-prroot () {
-  local url="$1"
-  echo "${url/\/pull\/+([0-9])/}"
-}
-
-prref () {
-  local url="$1"
-  local root="$2"
-  echo "refs${url:${#root}}/head"
-}
-
-pr () {
-  local url=$(prurl "$@")
-  local root="$(prroot "$url")"
-  local ref="$(prref "$url" "$root")"
-  echo "$root $ref"
-  #git pull --rebase $root $ref
-  pullup $root $ref
-}
-
-pullup () {
-  local me=$(git rev-list HEAD^..HEAD)
-  if [ $? -eq 0 ] && [ "$me" != "" ]; then
-    git pull "$@" && git rebase $me
-  fi
-}
-
-
+alias pr=pull
+alias pr2=pull
 
 ghadd () {
   local me="$(git config --get github.user)"
@@ -533,7 +413,7 @@ gio () {
   git fetch -a i
 }
 
-gho () {
+ghi () {
   local me="$(git config --get github.user)"
   [ "$me" == "" ] && \
     echo "Please enter your github name as the github.user git config." && \
@@ -617,18 +497,6 @@ node_js:
   - node
   - 12
   - 10
-  - 8
-
-os:
-  - linux
-  - windows
-
-cache:
-  directories:
-    - \$HOME/.npm
-
-notifications:
-  email: false
 YML
 }
 
@@ -709,16 +577,17 @@ gi () {
 # Remote branch is rebased, and local changes stashed and reapplied if possible.
 
 gp () {
-  local s
-  local head
-  s=$(git stash 2>/dev/null)
-  head=$(basename $(git symbolic-ref HEAD 2>/dev/null) 2>/dev/null)
+  local s=$(git stash 2>/dev/null)
+  local refhead=$(git symbolic-ref HEAD 2>/dev/null)
+  local head=${refhead/refs\/heads\//}
   if [ "" == "$head" ]; then
     echo "Not on a branch, can't pull" >&2
+    [ "$s" != "No local changes to save" ] && git stash pop
     return 1
   fi
-  git fetch -a $1
-  git pull --rebase $1 "$head"
+  local remote=${1:-origin}
+  git fetch "$remote"
+  git pull --rebase "$remote" "$head"
   [ "$s" != "No local changes to save" ] && git stash pop
 }
 
@@ -778,7 +647,15 @@ __prompt () {
   echo ""
   [ -d .git ] && git stash list
   if [ $SHLVL -gt 1 ]; then
-    { local i=$SHLVL; while [ $i -gt 1 ]; do echo -n '.'; let i--; done; }
+    {
+      local i=$SHLVL
+      if [ "$TMUX" != "" ]; then echo -ne "\033[42;30m"; fi
+      while [ $i -gt 1 ]; do
+        echo -n '.'
+        let i--
+      done
+      echo -ne "\033[0m"
+    }
   fi
   local DIR=${PWD/$HOME/\~}
   local HOST=${HOSTNAME:-$(uname -n)}
@@ -827,7 +704,7 @@ pid () {
   pg "$@" | awk '{print $2}'
 }
 
-alias fh="ssh izs.me"
+alias fh="et izs.me"
 
 # floating-point calculations
 calc () {
@@ -854,10 +731,12 @@ _npm_completion () {
                          COMP_LINE="$COMP_LINE" \
                          COMP_POINT="$COMP_POINT" \
                          npm completion -- "${words[@]}" \
-                         2>/dev/null)) || return $?
+                         2>~/.npm_completion_history)) || return $?
   IFS="$si"
 }
 complete -o default -F _npm_completion npm
+
+. <(node --completion-bash '' 2>/dev/null || echo '')
 
 complete -cf sudo
 
