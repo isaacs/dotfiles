@@ -645,7 +645,7 @@ macs () {
 __prompt () {
   echo -ne "\033[m";history -a
   echo ""
-  [ -d .git ] && git stash list
+  git stash list 2>/dev/null
   if [ $SHLVL -gt 1 ]; then
     {
       local i=$SHLVL
@@ -660,14 +660,17 @@ __prompt () {
   local DIR=${PWD/$HOME/\~}
   local HOST=${HOSTNAME:-$(uname -n)}
   HOST=${HOST%.local}
-  echo -ne "\033]0;$(__git_ps1 "%s - " 2>/dev/null)${DIR/\~\/dev\//}\007"
-  # echo -ne "$(__git_ps1 "%s " 2>/dev/null)"
-  echo -ne "$(__git_ps1 "\033[40;35m%s\033[40;30m\033[0m " 2>/dev/null)"
+  echo -ne "\033]0;$(__git_ps1 "%s%s - " 2>/dev/null)${DIR/\~\/dev\//}\007"
+  # echo -ne "$(__git_ps1 "%s%s " 2>/dev/null)"
+  echo -ne "$(__git_ps1 "\033[40;35m%s\033[40;30m#\033[40;35m%s\033[0m " 2>/dev/null)"
   echo -ne "\033[44;37m$HOST\033[0m:$DIR"
+  local SHA=$(git show --no-patch --pretty=%H HEAD 2>/dev/null)
+  SHA=${SHA:0:8}
   # echo -ne "$USER@$HOST:$DIR"
   if [ "$NAVE" != "" ]; then echo -ne " \033[44;37mnode@$NAVE\033[0m"
-  else echo -ne " \033[32mnode@$(node -v 2>/dev/null)\033[0m"
+  else echo -ne " \033[32mnode@$(node -p 'process.version.slice(1)' 2>/dev/null)\033[0m"
   fi
+  echo -ne " \033[40;31m$SHA\033[0m"
   echo ""
   # [ -f package.json ] && echo -ne "$(node -e 'j=require("./package.json");if(j.name&&j.version)console.log(" \033[35m"+j.name+"@"+j.version+"\033[0m")')"
 }

@@ -111,35 +111,23 @@ __git_ps1 ()
 			fi
 		fi
 		b="${b##refs/heads/}"
-		local n
-		if n=$(git config --get remote.origin.url 2>/dev/null \
+		local n=$(git config --get remote.origin.url 2>/dev/null \
 				| sed -e 's|^git@||' \
 				      -e 's|\.com\:|:|' \
-				      -e 's|^git\.||' \
 				      -e 's|\.git$||' \
-              -e 's|^https://github.com/|gh:|' \
-              -e 's|^http://github.com/|gh:|' \
+              -e 's|^https://github.com/|github:|' \
+              -e 's|^http://github.com/|github:|' \
 				      -e 's|^github:||' \
 				      -e 's|^nodejs.org:~/|n:|' \
-				      -e 's|^joyent:|j:|' \
-				      -e 's|^node@|n:|' \
-				      -e 's|.no.de:repo$||' \
 				2>/dev/null )
-		then
-		  if [ "$n" == "" ]; then
-		    n=$(basename $PWD)
-		  fi
-      if [ "$b" == "master" ]; then
-        b="$n"
-      else
-        b="$n $b"
-      fi
-		fi
+    if [ "$n" == "" ]; then
+      n=$(basename $PWD)
+    fi
 		
 		if [ -n "$1" ]; then
-			printf "$1" "$b$r"
+			printf "$1" "$n" "$b$r"
 		else
-			printf "%s" "$b$r"
+			printf "%s" "$n" "$b$r"
 		fi
 	fi
 }
