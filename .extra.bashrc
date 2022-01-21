@@ -12,6 +12,8 @@
 ######
 main () {
 
+export TIER_URL=https://tier.dev
+
 socks () {
   ssh -ND 8527 isaacs@izs.me
 }
@@ -116,12 +118,12 @@ export XDG_CONFIG_HOME=$HOME/.config
 export COPYFILE_DISABLE=true
 # homebrew="$HOME/.homebrew"
 local homebrew="/usr/local"
-__set_path PATH "/usr/local/bin:$PATH:$HOME/bin:$HOME/.cargo/bin:$HOME/.rvm/bin:$homebrew/opt/ruby/bin:$homebrew/lib/ruby/gems/2.6.0/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:/usr/local/opt/binutils/bin"
+__set_path PATH "/usr/local/go/bin:/usr/local/bin:$PATH:$HOME/bin:$HOME/.cargo/bin:$HOME/.rvm/bin:$homebrew/opt/ruby/bin:$homebrew/lib/ruby/gems/2.6.0/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:/usr/local/opt/binutils/bin"
 
 unset LD_LIBRARY_PATH
 __set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig"
 
-__set_path CDPATH ".:..:$HOME/dev/npm:$HOME/dev:$HOME/dev/js:$HOME"
+__set_path CDPATH ".:..:$HOME/dev/tier:$HOME/dev/npm:$HOME/dev:$HOME/dev/js:$HOME"
 
 alias nodee=node
 alias ndoe=node
@@ -307,7 +309,7 @@ export GIT_AUTHOR_NAME=${GITHUB_USER:-$(git config --get user.name)}
 export GIT_AUTHOR_EMAIL=$(git config --get user.email)
 
 grim () {
-  local m=${1-master}
+  local m=${1-main}
   echo "$m"
   git rebase -i $m
 }
@@ -342,6 +344,7 @@ alias gdiff='git diff --no-index --color'
 alias pbind="pbpaste | sed 's|^|    |g' | pbcopy"
 alias pbund="pbpaste | sed 's|^    ||g' | pbcopy"
 alias pbtxt="pbpaste | pbcopy"
+alias pbjson="pbpaste | json | pbcopy"
 pbgist () {
   pbpaste | gist "$@" | pbcopy
   pbpaste
@@ -385,7 +388,13 @@ ghadd () {
 
 
 nresolve () {
-  node -p 'require.resolve("'$1'")'
+  node -e '
+    for (x of process.argv.slice(1)) try {
+      console.log(require.resolve(x))
+    } catch (e) {
+      console.error(e.message.split("\n")[0])
+      process.exitCode = 1
+    }' "$@"
 }
 
 ghn () {
@@ -399,7 +408,7 @@ ghn () {
 }
 
 ght () {
-  local me=tapjs
+  local me=tierdev
   # like: "git@github.com:$me/$repo.git"
   local name="${1:-$(basename "$PWD")}"
   local repo="git@github.com:$me/$name"
@@ -480,10 +489,12 @@ YML
 scripts () {
   node -e '
     p = require("./package.json")
-    p.scripts.test = "tap test/*.js --100 -J",
-    p.scripts.preversion = "npm test",
-    p.scripts.postversion = "npm publish",
-    p.scripts.postpublish = "git push origin --all; git push origin --tags"
+    p.scripts.test = "tap"
+    p.tap = p.tap || {}
+    p.tap["check-coverage"] = true
+    p.scripts.preversion = "npm test"
+    p.scripts.postversion = "npm publish"
+    p.scripts.prepublishOnly = "git push origin --follow-tags"
     p = JSON.stringify(p, null, 2) + "\n"
     require("fs").writeFileSync("./package.json", p)
   '
@@ -506,10 +517,19 @@ isc () {
     return 1
   fi
 
+  local who
+  if [ "$1" = "npm" ]; then
+    who="npm, Inc."
+  elif [ "$1" = "gh" ] || [ "$1" = "github" ]; then
+    who="GitHub, Inc."
+  else
+    who="Isaac Z. Schlueter"
+  fi
+
   cat >LICENSE <<ISC
 The ISC License
 
-Copyright (c) npm, Inc. and Contributors
+Copyright (c) ${who} and Contributors
 
 Permission to use, copy, modify, and/or distribute this software for any
 purpose with or without fee is hereby granted, provided that the above
@@ -560,11 +580,11 @@ rmnpm () {
   rm -rf /usr/local/{lib/,}{node_modules,node,bin,share/man}/{.npm/,}npm* ~/.npm
 }
 
-# I can't type
+# I can't type. support `gi tcommit`
 gi () {
   local c=${1}
   cmd=("$@")
-  cmd[1]=${c:1}
+  cmd[1]=${c#t}
   cmd[0]=git
   "${cmd[@]}"
 }
@@ -573,7 +593,7 @@ gi () {
 # usage:
 # ghadd someuser  # add the github remote account
 # git checkout somebranch
-# gpm someuser    # similar to "git pull someuser somebranch"
+# gp someuser    # similar to "git pull someuser somebranch"
 # Remote branch is rebased, and local changes stashed and reapplied if possible.
 
 gp () {
@@ -660,7 +680,7 @@ __prompt () {
   local DIR=${PWD/$HOME/\~}
   local HOST=${HOSTNAME:-$(uname -n)}
   HOST=${HOST%.local}
-  echo -ne "\033]0;$(__git_ps1 "%s%s - " 2>/dev/null)${DIR/\~\/dev\//}\007"
+  echo -ne "\033]0;$(__git_ps1 "%s %s - " 2>/dev/null)${DIR/\~\/dev\//}\007"
   # echo -ne "$(__git_ps1 "%s%s " 2>/dev/null)"
   echo -ne "$(__git_ps1 "\033[40;35m%s\033[40;30m#\033[40;35m%s\033[0m " 2>/dev/null)"
   echo -ne "\033[44;37m$HOST\033[0m:$DIR"
@@ -715,7 +735,6 @@ calc () {
   [ "${expression:0:6}" != "scale=" ] && expression="scale=16;$expression"
   echo "$expression" | bc
 }
-
 
 type git >&/dev/null && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
 [ -f $HOME/.cd-completion ] && . $HOME/.cd-completion
