@@ -17,4 +17,12 @@ for i in .*; do
 	fi
 done
 
+# kitty is special
+if [ -e ~/.config/kitty/kitty.conf ]; then
+  cp ~/.config/kitty/kitty.conf ~/.dotfile_backup
+  rm ~/.config/kitty/kitty.conf || unlink ~/.config/kitty/kitty.conf
+fi
+mkdir -p ~/.config/kitty
+ln -s $(pwd)/kitty.conf ~/.config/kitty/kitty.conf
+
 exit 0

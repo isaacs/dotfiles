@@ -12,7 +12,14 @@
 ######
 main () {
 
-export TIER_URL=https://tier.dev
+[ -f ~/.tier-stripe-env ] && . ~/.tier-stripe-env
+
+pgr () {
+  local db=${1:-/tmp/devdb}
+  rm -rf "$db"
+  initdb "$db"
+  postgres -D "$db" -d=2
+}
 
 socks () {
   ssh -ND 8527 isaacs@izs.me
@@ -117,18 +124,20 @@ export XDG_CONFIG_HOME=$HOME/.config
 # mac tar fixing
 export COPYFILE_DISABLE=true
 # homebrew="$HOME/.homebrew"
-local homebrew="/usr/local"
-__set_path PATH "/usr/local/go/bin:/usr/local/bin:$PATH:$HOME/bin:$HOME/.cargo/bin:$HOME/.rvm/bin:$homebrew/opt/ruby/bin:$homebrew/lib/ruby/gems/2.6.0/bin:$homebrew/share/npm/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:/usr/local/opt/binutils/bin"
+local homebrew="/opt/homebrew"
+__set_path PATH "/usr/local/go/bin:/usr/local/bin:$PATH:$HOME/bin:$HOME/.cargo/bin:$HOME/.rvm/bin:$homebrew/opt/ruby/bin:$homebrew/lib/ruby/gems/2.6.0/bin:$homebrew/share/npm/bin:$homebrew/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:/usr/local/opt/binutils/bin"
 
 unset LD_LIBRARY_PATH
-__set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig"
+__set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig:/opt/homebrew"
 
-__set_path CDPATH ".:..:$HOME/dev/tier:$HOME/dev/npm:$HOME/dev:$HOME/dev/js:$HOME"
+__set_path CDPATH ".:..:$HOME/dev/tierdev:$HOME/dev/isaacs:$HOME/dev/tapjs:$HOME/dev/npm:$HOME/dev:$HOME"
 
 alias nodee=node
 alias ndoe=node
 alias noed=node
 alias nod=node
+
+export NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"
 
 # hack so I can write sloppy js objects and then convert to json in vim
 j () {
@@ -350,6 +359,13 @@ pbgist () {
   pbpaste
 }
 
+mb () {
+  gh repo edit --default-branch=main
+  git branch -M main
+  perl -pi -e 's/master/main/g' .git/config
+  gp origin
+}
+
 gho () {
   local r=${1:-"origin"}
   if [ "$r" == "browse" ]; then
@@ -558,7 +574,7 @@ ISC
   git add package.json LICENSE &&\
   git commit -m "isc license" &&\
   npm version patch &&\
-  git push origin master --tags &&\
+  git push origin --follow-tags &&\
   npm publish
 }
 
@@ -661,22 +677,27 @@ macs () {
   done
 }
 
-# set the bash prompt and the title function
-__prompt () {
-  echo -ne "\033[m";history -a
-  echo ""
-  git stash list 2>/dev/null
+shLvlIndent () {
   if [ $SHLVL -gt 1 ]; then
     {
       local i=$SHLVL
       if [ "$TMUX" != "" ]; then echo -ne "\033[42;30m"; fi
       while [ $i -gt 1 ]; do
-        echo -n '.'
+        echo -n '│'
         let i--
       done
       echo -ne "\033[0m"
     }
   fi
+}
+
+# set the bash prompt and the title function
+__prompt () {
+  echo -ne "\033[m";history -a
+  # rainbow
+  echo ""
+  git stash list 2>/dev/null
+  shLvlIndent
   local DIR=${PWD/$HOME/\~}
   local HOST=${HOSTNAME:-$(uname -n)}
   HOST=${HOST%.local}
@@ -692,15 +713,20 @@ __prompt () {
   fi
   echo -ne " \033[40;31m$SHA\033[0m"
   echo ""
-  # [ -f package.json ] && echo -ne "$(node -e 'j=require("./package.json");if(j.name&&j.version)console.log(" \033[35m"+j.name+"@"+j.version+"\033[0m")')"
+  if [ -f package.json ]; then
+    shLvlIndent
+    node -e 'j=require("./package.json")
+      if (j.name&&j.version) {
+        process.stdout.write("\033[40;36m"+j.name+"@"+j.version+"\033[0m ")
+        e = !(j.engines && j.engines.node &&
+          parseInt(j.engines.node.replace(/[^0-9\.]+/g, ""))>10)
+        if (e) process.stdout.write(require("util").inspect(j.engines))
+        process.stdout.write("\n")
+      }'
+  fi
 }
 
-if [ "$ITERM_SHELL_INTEGRATION_INSTALLED" == "Yes" ]; then
-  if ! [[ "${precmd_functions[@]}" == *"__prompt"* ]]; then
-    precmd_functions+=(__prompt)
-  fi
-  PROMPT_COMMAND="__bp_precmd_invoke_cmd; __bp_interactive_mode"
-elif [ "$PROMPT_COMMAND" = "" ]; then
+if [ "$PROMPT_COMMAND" = "" ]; then
   export PROMPT_COMMAND='__prompt;'
 elif [[ "$PROMPT_COMMAND" != *"__prompt"* ]]; then
   export PROMPT_COMMAND="${PROMPT_COMMAND}; __prompt;"
@@ -727,7 +753,12 @@ pid () {
   pg "$@" | awk '{print $2}'
 }
 
-alias fh="et izs.me"
+if type et &>/dev/null; then
+  alias fh="et izs.me"
+else
+  alias fh="ssh izs.me"
+fi
+
 
 # floating-point calculations
 calc () {
