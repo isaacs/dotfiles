@@ -25,4 +25,12 @@ fi
 mkdir -p ~/.config/kitty
 ln -s $(pwd)/kitty.conf ~/.config/kitty/kitty.conf
 
+# so is karabiner, but it is annoying about being a symlink, so just cp it
+if [ -e ~/.config/karabiner/karabiner.json ]; then
+  cp ~/.config/karabiner/karabiner.json ~/.dotfile_backup
+fi
+mkdir -p ~/.config/karabiner
+cp $(pwd)/karabiner.json ~/.config/karabiner/karabiner.json
+
+
 exit 0
