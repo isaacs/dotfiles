@@ -14,6 +14,9 @@ main () {
 
 [ -f ~/.tier-stripe-env ] && . ~/.tier-stripe-env
 
+# 8 chars is just too much
+tabs -4
+
 pgr () {
   local db=${1:-/tmp/devdb}
   rm -rf "$db"
@@ -714,7 +717,6 @@ __prompt () {
   echo -ne " \033[40;31m$SHA\033[0m"
   echo ""
   if [ -f package.json ]; then
-    shLvlIndent
     node -e 'j=require("./package.json")
       if (j.name&&j.version) {
         process.stdout.write("\033[40;36m"+j.name+"@"+j.version+"\033[0m ")
