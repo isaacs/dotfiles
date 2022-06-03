@@ -13,7 +13,8 @@ set visible-stats on
 set show-all-if-ambiguous on
 set mark-symlinked-directories on
 
-# Ctrl-E to open the editor, either in rlwrap or other readline-enabled apps.
+# Ctrl-X,E to open the editor, either in rlwrap or other readline-enabled apps.
 "\C-e": edit-and-execute-command
 "\C-e": rlwrap_call_editor
-# Space: magic-space
+"\C-/": insert-comment
+Ctrl-Space: insert-comment

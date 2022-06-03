@@ -12,10 +12,35 @@
 ######
 main () {
 
+export DOCKER_DEFAULT_PLATFORM=linux/amd64
+
+basicauth () {
+  echo 'authorization:basic '$(node -p 'Buffer.from(encodeURIComponent(process.argv[1]) + ":").toString("base64")' $1)
+}
+
 [ -f ~/.tier-stripe-env ] && . ~/.tier-stripe-env
+
+[ -f /opt/homebrew/etc/bash_completion ] && \
+  . /opt/homebrew/etc/bash_completion
 
 # 8 chars is just too much
 tabs -4
+
+na () {
+  if [ "$#" -lt 2 ]; then
+    exec nave auto "$@"
+  else
+    nave auto "$@"
+  fi
+}
+
+ne () {
+  if [ "$#" -eq 0 ]; then
+    exec nave exit "$@"
+  else
+    nave exit "$@"
+  fi
+}
 
 pgr () {
   local db=${1:-/tmp/devdb}
@@ -91,7 +116,7 @@ __set_path () {
   p=""
   local i
   for i in $path_elements; do
-    if [ -d $i ]; then
+    if [ -d $i ] && ! echo "$p" | grep " $i " &>/dev/null; then
       p="$p $i "
       # strip out from the original set.
       orig=${orig/ $i / }
@@ -128,12 +153,12 @@ export XDG_CONFIG_HOME=$HOME/.config
 export COPYFILE_DISABLE=true
 # homebrew="$HOME/.homebrew"
 local homebrew="/opt/homebrew"
-__set_path PATH "/usr/local/go/bin:/usr/local/bin:$PATH:$HOME/bin:$HOME/.cargo/bin:$HOME/.rvm/bin:$homebrew/opt/ruby/bin:$homebrew/lib/ruby/gems/2.6.0/bin:$homebrew/share/npm/bin:$homebrew/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:/usr/local/opt/binutils/bin"
+__set_path PATH "$NAVEPATH:$HOME/bin:/usr/local/go/bin:$HOME/.cargo/bin:$HOME/.rvm/bin:$homebrew/opt/ruby/bin:$homebrew/lib/ruby/gems/2.6.0/bin:$homebrew/share/npm/bin:$homebrew/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:/usr/local/opt/binutils/bin:$PATH"
 
 unset LD_LIBRARY_PATH
 __set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig:/opt/homebrew"
 
-__set_path CDPATH ".:..:$HOME/dev/tierdev:$HOME/dev/isaacs:$HOME/dev/tapjs:$HOME/dev/npm:$HOME/dev:$HOME"
+__set_path CDPATH ".:..:$HOME/dev/tierdev:$HOME/dev/isaacs:$HOME/dev/tapjs:$HOME/dev/npm:$HOME/dev/other:$HOME/dev:$HOME"
 
 alias nodee=node
 alias ndoe=node
@@ -174,19 +199,17 @@ export HISTFILESIZE=1000000000
 export histchars="!:#"
 
 if ! [ -z "$BASH" ]; then
-  __garbage __shopt
-  __shopt () {
-    local i
-    for i in "$@"; do
-      shopt -s $i 2>/dev/null
-    done
-  }
+  # shopt -u complete_fullquote
   # see http://www.gnu.org/software/bash/manual/html_node/The-Shopt-Builtin.html#The-Shopt-Builtin
-  __shopt \
-    histappend histverify histreedit \
-    cdspell expand_aliases cmdhist globasciiranges \
-    hostcomplete no_empty_cmd_completion nocaseglob \
-    checkhash extglob globstar dirspell
+  shopt -u direxpand
+  opts=(histappend histverify histreedit \
+      cdspell expand_aliases cmdhist globasciiranges \
+      no_empty_cmd_completion nocaseglob \
+      checkhash extglob globstar dirspell checkwinsize)
+  for i in "${opts[@]}"; do
+    shopt -s "$i" 2>/dev/null
+  done
+  unset opts
 fi
 
 # A little hack to add forward-and-back traversal with cd
@@ -694,8 +717,41 @@ shLvlIndent () {
   fi
 }
 
+set_npx_path () {
+  local p=$(pwd)
+  local ifs=$IFS
+  export IFS=:
+  local oldpath=($PATH)
+  export IFS=$ifs
+  local newpath=()
+  local d=$(dirname -- "$p")
+  while [ "$p" != "$d" ] && [ "$p" != "$HOME" ]; do
+    if [ -d "$p/node_modules" ] || [ -f "$p/package.json" ]; then
+      newpath+=($p/node_modules/.bin)
+      break
+    else
+      p=$d
+      d=$(dirname -- "$p")
+    fi
+  done
+  local setold="$newpath"
+  for p in "${oldpath[@]}"; do
+    if ! [ "x$p" = "x$OLDNPXPATH" ] && ! [ "$p" = "$setold" ]; then
+      newpath+=($p)
+    fi
+  done
+  export OLDNPXPATH="$setold"
+  export IFS=:
+  export PATH="${newpath[*]}"
+  export IFS=$ifs
+}
+
 # set the bash prompt and the title function
 __prompt () {
+  if nave should-auto; then
+    exec nave auto
+  fi
+  set_npx_path
   echo -ne "\033[m";history -a
   # rainbow
   echo ""
@@ -770,7 +826,7 @@ calc () {
 }
 
 type git >&/dev/null && [ -f $HOME/.git-completion ] && . $HOME/.git-completion
-[ -f $HOME/.cd-completion ] && . $HOME/.cd-completion
+# [ -f $HOME/.cd-completion ] && . $HOME/.cd-completion
 
 _npm_completion () {
   local words cword

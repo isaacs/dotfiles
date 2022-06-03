@@ -32,5 +32,4 @@ fi
 mkdir -p ~/.config/karabiner
 cp $(pwd)/karabiner.json ~/.config/karabiner/karabiner.json
 
-
 exit 0

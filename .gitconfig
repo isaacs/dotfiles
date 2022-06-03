@@ -87,3 +87,36 @@
 	helper = osxkeychain
 [commit]
 	gpgsign = true
+
+
+
+[core]
+  pager = delta --dark
+[interactive]
+  diffFilter = delta --color-only --features=interactive
+[delta]
+  features = decorations
+[delta "interactive"]
+  keep-plus-minus-markers = false
+[delta "decorations"]
+  commit-decoration-style = blue ol
+  commit-style = red black
+  file-style = omit
+  minus-style = syntax "#330611"
+  plus-style = syntax "#112a18"
+  minus-emph-style = "#440000" "#ff99cc" # 52 218 
+  minus-empty-line-marker-style = normal "#660000"
+  plus-empty-line-marker-style = normal "#004400"
+  plus-emph-style = "#004300" "#d7ffd7" # 22 194 # 
+  hunk-header-decoration-style = blue box
+  hunk-header-file-style = red
+  hunk-header-line-number-style = "#06a000"
+  hunk-header-style = file line-number syntax "#111111"
+  grep-file-style = "#cccccc" "#333333"
+  hyperlinks = true
+  max-line-length = 512
+  line-numbers = false
+  dark = true
+
+[url "ssh://git@github.com/"]
+	insteadOf = https://github.com/
