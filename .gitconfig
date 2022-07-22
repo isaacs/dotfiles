@@ -2,7 +2,7 @@
   # you probably want to change this bit.
   name = isaacs
   email = i@izs.me
-  signingkey = 0x6C481CF6
+  signingkey = 0x89F5EB44F281D9ECDF596605B2191E5CC3EA70E2
 	fullname = Isaac Z. Schlueter
 	website = https://izs.me
 [github]
@@ -73,8 +73,6 @@
   smudge = git-lfs smudge -- %f
   process = git-lfs filter-process
   required = true
-[gpg]
-	program = /usr/local/bin/krgpg
 [tag]
 	forceSignAnnotated = true
   gpgSign = true
