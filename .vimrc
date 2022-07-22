@@ -269,6 +269,7 @@ hi FgCocWarningFloatBgCocFloating term=reverse ctermfg=252 ctermbg=52 guifg=fg g
 hi FgCocHintFloatBgCocFloating term=reverse ctermfg=252 ctermbg=52 guifg=fg guibg=#600000
 hi FgCocErrorFloatBgCocFloating ctermfg=9 ctermbg=bg guifg=#ff0000 guibg=#330000 term=reverse
 
+" golang
 autocmd FileType go nmap <buffer> <Leader>c <Plug>(go-coverage-toggle)
 autocmd FileType go nmap <buffer> <Leader>r <Plug>(go-run)
 autocmd FileType go nmap <buffer> <Leader>b <Plug>(go-build)
