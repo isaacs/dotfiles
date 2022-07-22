@@ -27,6 +27,11 @@ basicauth () {
 [ -f /opt/homebrew/etc/bash_completion ] && \
   . /opt/homebrew/etc/bash_completion
 
+# sometimes you have to smack your type server a little bit
+hupts () {
+  pg tsserver | awk '{print $2}' | xargs -I X kill -HUP X
+}
+
 # 8 chars is just too much
 tabs -4
 
