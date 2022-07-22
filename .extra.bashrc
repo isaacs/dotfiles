@@ -14,6 +14,10 @@ main () {
 
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
 
+eb () {
+  env $(cat ${1:-".env"}) bash
+}
+
 basicauth () {
   echo 'authorization:basic '$(node -p 'Buffer.from(encodeURIComponent(process.argv[1]) + ":").toString("base64")' $1)
 }
