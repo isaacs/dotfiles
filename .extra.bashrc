@@ -12,7 +12,9 @@
 ######
 main () {
 
+# export DO_NOT_TRACK=1
 export DOCKER_DEFAULT_PLATFORM=linux/amd64
+export SSH_AUTH_SOCK="~/.ssh/agent"
 
 eb () {
   env $(cat ${1:-".env"}) bash
@@ -21,8 +23,6 @@ eb () {
 basicauth () {
   echo 'authorization:basic '$(node -p 'Buffer.from(encodeURIComponent(process.argv[1]) + ":").toString("base64")' $1)
 }
-
-[ -f ~/.tier-stripe-env ] && . ~/.tier-stripe-env
 
 [ -f /opt/homebrew/etc/bash_completion ] && \
   . /opt/homebrew/etc/bash_completion
@@ -162,17 +162,19 @@ export XDG_CONFIG_HOME=$HOME/.config
 export COPYFILE_DISABLE=true
 # homebrew="$HOME/.homebrew"
 local homebrew="/opt/homebrew"
-__set_path PATH "$NAVEPATH:$HOME/bin:/usr/local/go/bin:$HOME/.cargo/bin:$HOME/.rvm/bin:$homebrew/opt/ruby/bin:$homebrew/lib/ruby/gems/2.6.0/bin:$homebrew/share/npm/bin:$homebrew/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:/usr/local/opt/binutils/bin:$PATH"
+__set_path PATH "$NAVEPATH:$HOME/bin:$HOME/go/bin:/usr/local/go/bin:$HOME/.cargo/bin:$HOME/.rvm/bin:$homebrew/opt/ruby/bin:$homebrew/lib/ruby/gems/2.6.0/bin:$homebrew/share/npm/bin:$homebrew/bin:$(__form_paths bin sbin nodejs/bin libexec include):/usr/local/nginx/sbin:/usr/X11R6/bin:/usr/local/mysql/bin:/usr/X11R6/include:/usr/local/opt/binutils/bin:$PATH"
 
 unset LD_LIBRARY_PATH
 __set_path PKG_CONFIG_PATH "$(__form_paths lib/pkgconfig):/usr/X11/lib/pkgconfig:/opt/gnome-2.14/lib/pkgconfig:/opt/homebrew"
 
-__set_path CDPATH ".:..:$HOME/dev/tierdev:$HOME/dev/isaacs:$HOME/dev/tapjs:$HOME/dev/npm:$HOME/dev/other:$HOME/dev:$HOME"
+__set_path CDPATH ".:..:$HOME/dev/isaacs:$HOME/dev/vltpkg:$HOME/dev/tapjs:$HOME/dev/npm:$HOME/dev/other:$HOME/dev:$HOME"
 
 alias nodee=node
 alias ndoe=node
 alias noed=node
 alias nod=node
+
+# export NAVE_NPX=1
 
 export NODE_EXTRA_CA_CERTS="$(mkcert -CAROOT)/rootCA.pem"
 
@@ -197,7 +199,7 @@ js () {
     echo "using ./node "$(./node --version)
     n=./$n
   fi
-  $n "$@"
+  $n --enable-source-maps "$@"
 }
 
 export HISTSIZE=10000
@@ -418,9 +420,6 @@ gho () {
   open $o
 }
 
-alias pr=pull
-alias pr2=pull
-
 ghadd () {
   local me="$(git config --get github.user)"
   [ "$me" == "" ] && echo "Please enter your github name as the github.user git config." && return 1
@@ -450,16 +449,6 @@ nresolve () {
 
 ghn () {
   local me=npm
-  # like: "git@github.com:$me/$repo.git"
-  local name="${1:-$(basename "$PWD")}"
-  local repo="git@github.com:$me/$name"
-  git remote rm origin
-  git remote add origin "$repo"
-  git fetch -a "origin"
-}
-
-ght () {
-  local me=tierdev
   # like: "git@github.com:$me/$repo.git"
   local name="${1:-$(basename "$PWD")}"
   local repo="git@github.com:$me/$name"
@@ -511,9 +500,9 @@ lic () {
 
 alias n=npm
 alias np=npm
-alias nt="npm test --"
-alias nf="npm test -- --no-coverage"
-alias ns="npm run snap --"
+# alias nt="npm test --"
+# alias nf="npm test -- --no-coverage"
+# alias ns="npm run snap --"
 # alias nc="npx npmc"
 
 appveyor () {
@@ -726,32 +715,45 @@ shLvlIndent () {
   fi
 }
 
+array_contains_element () {
+  local e
+  local match="$1"
+  shift
+  for e; do [[ "$e" == "$match" ]] && return 0; done
+  return 1
+}
+array_uniq () {
+  local e
+  local u
+  u=()
+  for e; do
+    if ! array_contains_element "$e" "${u[@]}"; then
+      u+=("$e")
+    fi
+  done
+  echo "${u[*]}"
+}
+
+export NO_NPX_PATH=$PATH
 set_npx_path () {
   local p=$(pwd)
   local ifs=$IFS
   export IFS=:
-  local oldpath=($PATH)
-  export IFS=$ifs
-  local newpath=()
+  local ogpath=($PATH)
+  local nm
+  nm=()
   local d=$(dirname -- "$p")
   while [ "$p" != "$d" ] && [ "$p" != "$HOME" ]; do
     if [ -d "$p/node_modules" ] || [ -f "$p/package.json" ]; then
-      newpath+=($p/node_modules/.bin)
-      break
-    else
-      p=$d
-      d=$(dirname -- "$p")
+      nm+=("$p/node_modules/.bin")
     fi
+    p=$d
+    d=$(dirname -- "$p")
   done
-  local setold="$newpath"
-  for p in "${oldpath[@]}"; do
-    if ! [ "x$p" = "x$OLDNPXPATH" ] && ! [ "$p" = "$setold" ]; then
-      newpath+=($p)
-    fi
-  done
-  export OLDNPXPATH="$setold"
+  local newpath=(${nm[*]}:${NO_NPX_PATH[*]})
+  local newpathu=($(array_uniq "${newpath[@]}"))
   export IFS=:
-  export PATH="${newpath[*]}"
+  export PATH="${newpathu[*]}"
   export IFS=$ifs
 }
 
@@ -764,12 +766,13 @@ __prompt () {
   echo -ne "\033[m";history -a
   # rainbow
   echo ""
+  jobs | grep -v 'nave should-auto'
   git stash list 2>/dev/null
   shLvlIndent
   local DIR=${PWD/$HOME/\~}
   local HOST=${HOSTNAME:-$(uname -n)}
   HOST=${HOST%.local}
-  echo -ne "\033]0;$(__git_ps1 "%s %s - " 2>/dev/null)${DIR/\~\/dev\//}\007"
+  echo -ne "\x1b]0;$(__git_ps1 "%s %s - " 2>/dev/null)${DIR/\~\/dev\//}\x1b\\"
   # echo -ne "$(__git_ps1 "%s%s " 2>/dev/null)"
   echo -ne "$(__git_ps1 "\033[40;35m%s\033[40;30m#\033[40;35m%s\033[0m " 2>/dev/null)"
   echo -ne "\033[44;37m$HOST\033[0m:$DIR"
@@ -786,10 +789,13 @@ __prompt () {
       if (j.name&&j.version) {
         process.stdout.write("\033[40;36m"+j.name+"@"+j.version+"\033[0m ")
         e = !(j.engines && j.engines.node &&
-          parseInt(j.engines.node.replace(/[^0-9\.]+/g, ""))>10)
+          parseInt(j.engines.node.replace(/[^0-9\.]+/g, ""))>12)
         if (e) process.stdout.write(require("util").inspect(j.engines))
         process.stdout.write("\n")
       }'
+  fi
+  if [ "$(whoami)" = "root" ]; then
+    echo -ne "\033[41;30;1mroot\033[0m "
   fi
 }
 
