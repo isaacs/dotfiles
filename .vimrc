@@ -11,6 +11,7 @@ Plug 'editorconfig/editorconfig-vim'
 Plug 'tpope/vim-fugitive'
 " Plug 'godlygeek/tabular'
 Plug 'tpope/vim-sensible'
+Plug 'jonsmithers/vim-html-template-literals'
 Plug 'pangloss/vim-javascript'
 Plug 'mxw/vim-jsx'
 Plug 'mbbill/undotree'
@@ -19,7 +20,7 @@ Plug 'leafgarland/typescript-vim'
 Plug 'peitalin/vim-jsx-typescript'
 Plug 'jparise/vim-graphql'
 Plug 'neoclide/coc.nvim', {'branch': 'release'}
-Plug 'prettier/vim-prettier'
+" Plug 'prettier/vim-prettier'
 Plug 'jxnblk/vim-mdx-js'
 Plug 'skanehira/gh.vim'
 " Plug 'vim-airline/vim-airline'
@@ -130,7 +131,7 @@ endfunction
 command! J :call PrettyJSON()
 
 set hls
-noremap <Leader><Space> :noh<CR>:call clearmatches()<CR>
+noremap <Leader><Space> :noh<CR>:call clearmatches()<CR>:syntax sync fromstart<CR>
 
 noremap <Leader>. :%s/\v +$//g<CR>
 
@@ -219,6 +220,9 @@ au! BufNewFile,BufRead,BufNewFile *.prisma setlocal filetype=graphql
 au FileType graphql syn match prismaComment "//.*$" contains=@Spell
 au FileType graphql hi def link prismaComment Comment
 
+" nunjucks is basically html
+au! BufNewFile,BufRead,BufNewFile *.njk setlocal filetype=html
+
 " italic comments
 set t_ZH=[3m
 set t_ZR=[23m
@@ -234,9 +238,9 @@ let g:go_template_autocreate = 0
 
 let g:coc_global_extensions = ['coc-tsserver', 'coc-json']
 " Add CoC Prettier if prettier is installed
-if isdirectory('./node_modules') && isdirectory('./node_modules/prettier')
-  let g:coc_global_extensions += ['coc-prettier']
-endif
+" if isdirectory('./node_modules') && isdirectory('./node_modules/prettier')
+"   let g:coc_global_extensions += ['coc-prettier']
+" endif
 nmap <leader>gn <Plug>(coc-diagnostic-prev)
 nmap <leader>gm <Plug>(coc-diagnostic-next)
 nmap <leader>gd <Plug>(coc-definition)
@@ -254,9 +258,9 @@ function! ToggleCocDoc()
 endfunction
 
 nmap <leader>, :call ToggleCocDoc()<CR>
-nmap <leader>f :CocCommand prettier.formatFile<CR>
-autocmd FileType typescript nmap <leader>f :call CocAction('runCommand', 'tsserver.organizeImports')<CR>:CocCommand prettier.formatFile<CR>
-autocmd FileType typescriptreact nmap <leader>f :call CocAction('runCommand', 'tsserver.organizeImports')<CR>:CocCommand prettier.formatFile<CR>
+nmap <leader>f :%!npx prettier --stdin-filepath %<CR>:syntax sync fromstart<CR>
+autocmd FileType typescript nmap <leader>f :call CocAction('runCommand', 'editor.action.organizeImport')<CR>:%!npx prettier --stdin-filepath %<CR>:syntax sync fromstart<CR>
+autocmd FileType typescriptreact nmap <leader>f :call CocAction('runCommand', 'editor.action.organizeImport')<CR>:%!npx prettier --stdin-filepath %<CR>:syntax sync fromstart<CR>
 " tab autocompletes if menu showing, otherwise it's just tab
 inoremap <silent><expr> <tab> pumvisible() ? coc#_select_confirm() : "<TAB>"
 
@@ -284,13 +288,13 @@ autocmd FileType go nmap <buffer> <Leader>p :cexpr system('go test')<CR>:copen<C
 " also use a narrower text width on markdown, since it's usually a
 " lot of prose.
 au FileType markdown setlocal textwidth=65
-au FileType markdown setlocal tabstop=4
-au FileType markdown setlocal shiftwidth=4
-au FileType markdown setlocal softtabstop=4
+" au FileType markdown setlocal tabstop=4
+" au FileType markdown setlocal shiftwidth=4
+" au FileType markdown setlocal softtabstop=4
 au FileType markdown.mdx setlocal textwidth=65
-au FileType markdown.mdx setlocal tabstop=4
-au FileType markdown.mdx setlocal shiftwidth=4
-au FileType markdown.mdx setlocal softtabstop=4
+" au FileType markdown.mdx setlocal tabstop=4
+" au FileType markdown.mdx setlocal shiftwidth=4
+" au FileType markdown.mdx setlocal softtabstop=4
 
 function! CheckBox ()
   let line = getline('.')
@@ -328,6 +332,44 @@ au FileType markdown vnoremap <buffer><silent> <space> :call CheckBox()<CR>
 au FileType markdown.mdx nnoremap <buffer><silent> <space> :call CheckBox()<CR>
 au FileType markdown.mdx vnoremap <buffer><silent> <space> :call CheckBox()<CR>
 
+function! CheckBoxJS ()
+  let line = getline('.')
+  " call setline('.', substitute(line, '$', ' -- eol', ''))
+  if (match(line, '^\s*// \s*[*-]') != -1)
+    " is a li
+    if (match(line, '^\s*// \s*[*-] \[[x ]\]') == -1)
+      " not a checkbox
+      if (match(line, '^\s*// \s*-') != -1)
+        call setline('.', substitute(line, '-\s*', '- [ ] ', ''))
+      else
+        call setline('.', substitute(line, '*\s*', '* [ ] ', ''))
+      endif
+      normal 4l
+    else
+      " is a checkbox, check open/closed
+      if (match(line, '^\s*// \s*[*-] \[ \]') != -1)
+        " open, close it
+        call setline('.', substitute(line, '\[ \] ', '[x] ', ''))
+      else
+        " closed, remove it
+        let s = col('.')
+        call setline('.', substitute(line, '\[x\] ', '', ''))
+        let t = col('.')
+        while (s - t < 4)
+          normal h
+          let s += 1
+        endwhile
+      endif
+    endif
+  endif
+endfunction
+au FileType typescript nnoremap <buffer><silent> <space> :call CheckBoxJS()<CR>
+au FileType typescript vnoremap <buffer><silent> <space> :call CheckBoxJS()<CR>
+au FileType typescriptreact nnoremap <buffer><silent> <space> :call CheckBoxJS()<CR>
+au FileType typescriptreact vnoremap <buffer><silent> <space> :call CheckBoxJS()<CR>
+au FileType javascript nnoremap <buffer><silent> <space> :call CheckBoxJS()<CR>
+au FileType javascript vnoremap <buffer><silent> <space> :call CheckBoxJS()<CR>
+
 " languages that use real tabs
 set expandtab
 au FileType make setlocal noexpandtab
@@ -339,5 +381,8 @@ noremap <leader>z :UndotreeToggle<CR>
 if has('nvim')
   command! Sh sp|te
 endif
+
+" don't ever get confused and think the whole rest of the file is a comment
+autocmd BufEnter * :syntax sync fromstart
 
 set directory=~/.vim/swapfiles//
