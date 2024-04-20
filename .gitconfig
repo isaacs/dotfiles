@@ -2,9 +2,9 @@
   # you probably want to change this bit.
   name = isaacs
   email = i@izs.me
-  signingkey = 0x89F5EB44F281D9ECDF596605B2191E5CC3EA70E2
+  signingkey = 0xD67873B9DBD447B2
 	fullname = Isaac Z. Schlueter
-	website = https://izs.me
+	website = https://blog.izs.me
 [github]
   user = isaacs
 [alias]
@@ -16,7 +16,7 @@
   cp = cherry-pick
   df = diff
   ln = log --graph --pretty=format:'%Cred%h%Creset %C(yellow)%an%d%Creset %s %b %Cgreen(%cr)%Creset' --date=relative
-  lg = log --graph --pretty=format:'%Cred%h%Creset %C(yellow)%an%d%Creset %s %Cgreen(%cr)%Creset' --date=relative
+  lg = log --graph --pretty=format:'%Cred%h%Creset %C(yellow)%an%d%Creset %s %Cgreen(%cs)%Creset' --date=relative
   ll = log --first-parent --pretty=format:'%h %s'
   lc = log --first-parent --pretty=format:'%s'
   lo = log --oneline
@@ -116,5 +116,5 @@
   line-numbers = false
   dark = true
 
-[url "ssh://git@github.com/"]
+[url "ssh://git@github.com:"]
 	insteadOf = https://github.com/
