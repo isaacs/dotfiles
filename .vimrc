@@ -43,8 +43,6 @@ let g:vim_markdown_auto_insert_bullets = 1
 "let g:vim_markdown_conceal_code_blocks = 0
 let g:vim_markdown_new_list_item_indent = 4
 
-let g:coc_global_extensions = ['coc-tsserver']
-
 
 " i've got lots of ram and markdown has some big greps
 set maxmempattern=10000
@@ -256,7 +254,6 @@ function! ToggleCocDoc()
     endif
   endif
 endfunction
-
 nmap <leader>, :call ToggleCocDoc()<CR>
 nmap <leader>f :%!npx prettier --stdin-filepath %<CR>:syntax sync fromstart<CR>
 autocmd FileType typescript nmap <leader>f :call CocAction('runCommand', 'editor.action.organizeImport')<CR>:%!npx prettier --stdin-filepath %<CR>:syntax sync fromstart<CR>

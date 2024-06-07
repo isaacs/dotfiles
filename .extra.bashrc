@@ -21,7 +21,7 @@ eb () {
 }
 
 basicauth () {
-  echo 'authorization:basic '$(node -p 'Buffer.from(encodeURIComponent(process.argv[1]) + ":").toString("base64")' $1)
+  echo 'authorization: Basic '$(node -p 'Buffer.from(encodeURIComponent(process.argv[1]) + ":").toString("base64")' $1)
 }
 
 [ -f /opt/homebrew/etc/bash_completion ] && \
@@ -770,9 +770,20 @@ __prompt () {
   git stash list 2>/dev/null
   shLvlIndent
   local DIR=${PWD/$HOME/\~}
+  DIR=${DIR/\~\/[dD]eveloper\//~\/dev\/}
   local HOST=${HOSTNAME:-$(uname -n)}
   HOST=${HOST%.local}
-  echo -ne "\x1b]0;$(__git_ps1 "%s %s - " 2>/dev/null)${DIR/\~\/dev\//}\x1b\\"
+  local p=${DIR/\~\/dev\//}
+  local g=$(__git_ps1 "%s %s" 2>/dev/null)
+  local repo=($g)
+  if [[ "$g" =~ ^$p.* ]]; then
+    p=""
+  elif [[ "$p" =~ ^${repo[0]}.* ]]; then
+    p=" ${p/${repo[0]}\/}"
+  elif ! [ "$g" = "" ]; then
+    p=" ${p}"
+  fi
+  echo -ne "\x1b]0;${repo[0]}${p}\x1b\\"
   # echo -ne "$(__git_ps1 "%s%s " 2>/dev/null)"
   echo -ne "$(__git_ps1 "\033[40;35m%s\033[40;30m#\033[40;35m%s\033[0m " 2>/dev/null)"
   echo -ne "\033[44;37m$HOST\033[0m:$DIR"
@@ -788,9 +799,10 @@ __prompt () {
     node -e 'j=require("./package.json")
       if (j.name&&j.version) {
         process.stdout.write("\033[40;36m"+j.name+"@"+j.version+"\033[0m ")
-        e = !(j.engines && j.engines.node &&
-          parseInt(j.engines.node.replace(/[^0-9\.]+/g, ""))>12)
-        if (e) process.stdout.write(require("util").inspect(j.engines))
+        if (j.engines) {
+          u=require("util")
+          process.stdout.write(u.inspect(j.engines, { colors: true }))
+        }
         process.stdout.write("\n")
       }'
   fi
